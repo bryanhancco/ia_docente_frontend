@@ -109,6 +109,190 @@ export interface DeleteFileResponse {
   id_clase: number;
 }
 
+export interface EstructuraClaseResponse {
+  message: string;
+  estructura: string;
+  contenido_id: number;
+}
+
+export interface RecursosEducativosResponse {
+  message: string;
+  recursos: string;
+  contenido_id: number;
+}
+
+export interface PreguntaData {
+  id: number;
+  id_clase: number;
+  pregunta: string;
+  alternativa_a: string;
+  alternativa_b: string;
+  alternativa_c: string;
+  alternativa_d: string;
+  alternativa_correcta: number;
+  retroalimentacion_a: string;
+  retroalimentacion_b: string;
+  retroalimentacion_c: string;
+  retroalimentacion_d: string;
+  estado: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProcessResponseNew {
+  message: string;
+  clase_id: number;
+  contenidos_generados: ContenidoGeneradoDetail[];
+  tema: string;
+  nivel_educativo: string;
+}
+
+export interface ContenidoGeneradoDetail {
+  tipo: string;
+  status: 'success' | 'error';
+  contenido_id?: number;
+  archivo_id?: number;
+  filename?: string;
+  file_path?: string;
+  slides_info?: {
+    id: string;
+    embed_url: string;
+    download_url: string;
+  };
+  preguntas_guardadas?: number;
+  preguntas_solicitadas?: number;
+  preview?: string;
+  error?: string;
+}
+
+// ====== INTERFACES PARA ESTUDIANTES ======
+
+export interface EstudianteCreateDTO {
+  nombre: string;
+  correo: string;
+  password: string;
+  perfil_cognitivo?: string;
+  perfil_personalidad?: string;
+}
+
+export interface EstudianteResponseDTO {
+  id: number;
+  nombre: string;
+  correo: string;
+  perfil_cognitivo?: string;
+  perfil_personalidad?: string;
+}
+
+export interface EstudianteLoginDTO {
+  correo: string;
+  password: string;
+}
+
+export interface EstudianteLoginResponse {
+  message: string;
+  estudiante: EstudianteResponseDTO;
+}
+
+export interface EstudianteUpdateDTO {
+  nombre?: string;
+  correo?: string;
+  perfil_cognitivo?: string;
+  perfil_personalidad?: string;
+}
+
+export interface EstudianteClaseCreateDTO {
+  id_estudiante: number;
+  id_clase: number;
+  nivel_conocimientos?: string;
+  nivel_motivacion?: string;
+}
+
+export interface EstudianteClaseResponseDTO {
+  id: number;
+  id_estudiante: number;
+  id_clase: number;
+  nivel_conocimientos?: string;
+  nivel_motivacion?: string;
+}
+
+export interface EstudianteClaseDetalleDTO {
+  id: number;
+  id_estudiante: number;
+  id_clase: number;
+  nivel_conocimientos?: string;
+  nivel_motivacion?: string;
+  estudiante_nombre: string;
+  estudiante_correo: string;
+  estudiante_perfil_cognitivo?: string;
+  clase_nombre?: string;
+  clase_tema?: string;
+}
+
+// ====== INTERFACES PARA AGENTE PSICOPEDAGÓGICO ======
+
+export type PerfilCognitivoType = 'visual' | 'auditivo' | 'lector' | 'kinestesico';
+export type NivelConocimientosType = 'sin_conocimiento' | 'basico' | 'intermedio';
+
+export interface ApoyoPsicopedagogicoRequestDTO {
+  perfil_cognitivo: PerfilCognitivoType;
+  perfil_personalidad: string;
+  nivel_conocimientos: NivelConocimientosType;
+  id_clase: number;
+  mensaje_usuario: string;
+  problema_especifico?: string;
+}
+
+export interface PlanEstudioRequestDTO {
+  perfil_cognitivo: PerfilCognitivoType;
+  perfil_personalidad: string;
+  nivel_conocimientos: NivelConocimientosType;
+  id_clase: number;
+  mensaje_usuario: string;
+  objetivos_especificos?: string;
+}
+
+export interface EvaluacionComprensionRequestDTO {
+  perfil_cognitivo: PerfilCognitivoType;
+  perfil_personalidad: string;
+  nivel_conocimientos: NivelConocimientosType;
+  id_clase: number;
+  mensaje_usuario: string;
+  respuestas_estudiante?: string;
+}
+
+export interface RespuestaPsicopedagogicaDTO {
+  status: string;
+  estudiante_id: number;
+  clase_id: number;
+  contenido_generado: string;
+  perfil_cognitivo: string;
+  nivel_conocimientos: string;
+  timestamp: string;
+  tipo_respuesta: string;
+  metadata?: any;
+}
+
+export interface PlanEstudioResponseDTO {
+  status: string;
+  estudiante_id: number;
+  clase_id: number;
+  plan_estudio: string;
+  perfil_cognitivo: string;
+  nivel_conocimientos: string;
+  objetivos_especificos?: string;
+  timestamp: string;
+}
+
+export interface EvaluacionComprensionResponseDTO {
+  status: string;
+  estudiante_id: number;
+  clase_id: number;
+  evaluacion_comprension: string;
+  perfil_cognitivo: string;
+  nivel_conocimientos: string;
+  timestamp: string;
+}
+
 class ApiService {
   private async fetchWithErrorHandling(url: string, options?: RequestInit) {
     try {
@@ -177,10 +361,15 @@ class ApiService {
   }
 
   // Procesar clase (generar contenido)
-  async processClase(idClase: number): Promise<ProcessResponse> {
+  async processClase(idClase: number): Promise<ProcessResponseNew> {
     return this.fetchWithErrorHandling(`/clases/${idClase}/process`, {
       method: 'POST',
     });
+  }
+
+  // Obtener preguntas de una clase
+  async getPreguntas(idClase: number): Promise<PreguntaData[]> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/preguntas`);
   }
 
   // Obtener contenidos generados de una clase
@@ -682,6 +871,198 @@ class ApiService {
     return this.fetchWithErrorHandling(`/clases/${idClase}/archivos/${filename}`, {
       method: 'DELETE',
     });
+  }
+
+  // Generar estructura de clase
+  async generarEstructuraClase(idClase: number): Promise<EstructuraClaseResponse> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/generar-estructura`, {
+      method: 'POST',
+    });
+  }
+
+  // Buscar recursos educativos web
+  async buscarRecursosEducativos(idClase: number): Promise<RecursosEducativosResponse> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/buscar-recursos`, {
+      method: 'POST',
+    });
+  }
+
+  // ====== MÉTODOS PARA ESTUDIANTES ======
+
+  // Crear estudiante
+  async createEstudiante(estudiante: EstudianteCreateDTO): Promise<EstudianteResponseDTO> {
+    return this.fetchWithErrorHandling('/estudiantes', {
+      method: 'POST',
+      body: JSON.stringify(estudiante),
+    });
+  }
+
+  // Login estudiante
+  async loginEstudiante(loginData: EstudianteLoginDTO): Promise<EstudianteLoginResponse> {
+    return this.fetchWithErrorHandling('/estudiantes/login', {
+      method: 'POST',
+      body: JSON.stringify(loginData),
+    });
+  }
+
+  // Obtener estudiante por ID
+  async getEstudiante(idEstudiante: number): Promise<EstudianteResponseDTO> {
+    return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}`);
+  }
+
+  // Actualizar estudiante
+  async updateEstudiante(idEstudiante: number, data: EstudianteUpdateDTO): Promise<EstudianteResponseDTO> {
+    return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Obtener clases de un estudiante
+  async getClasesEstudiante(idEstudiante: number): Promise<EstudianteClaseDetalleDTO[]> {
+    return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}/clases`);
+  }
+
+  // Inscribir estudiante en una clase
+  async inscribirEstudianteClase(inscripcion: EstudianteClaseCreateDTO): Promise<EstudianteClaseResponseDTO> {
+    return this.fetchWithErrorHandling('/estudiante-clase', {
+      method: 'POST',
+      body: JSON.stringify(inscripcion),
+    });
+  }
+
+  // Obtener contenidos de una clase
+  async getContenidosClase(idClase: number): Promise<ContenidoGenerado[]> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/contenidos`);
+  }
+
+  // ====== MÉTODOS PARA AGENTE PSICOPEDAGÓGICO ======
+
+  // Generar apoyo psicopedagógico personalizado
+  async generarApoyoPsicopedagogico(
+    estudianteId: number, 
+    requestData: ApoyoPsicopedagogicoRequestDTO
+  ): Promise<RespuestaPsicopedagogicaDTO> {
+    try {
+      // Normalizar el perfil cognitivo
+      const normalizedData = {
+        ...requestData,
+        perfil_cognitivo: requestData.perfil_cognitivo.toLowerCase(),
+      };
+
+      console.log('Enviando datos de apoyo psicopedagógico:', normalizedData);
+      
+      const response = await fetch(`${API_BASE_URL}/api/psicopedagogico/apoyo/${estudianteId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(normalizedData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta del apoyo psicopedagógico:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar apoyo psicopedagógico:', error);
+      throw error;
+    }
+  }
+
+  // Generar plan de estudio personalizado
+  async generarPlanEstudio(
+    estudianteId: number,
+    perfilCognitivo: string,
+    perfilPersonalidad: string,
+    nivelConocimientos: string,
+    idClase: number,
+    mensajeUsuario: string,
+    objetivosEspecificos?: string
+  ): Promise<RespuestaPsicopedagogicaDTO> {
+    try {
+      const requestData: PlanEstudioRequestDTO = {
+        perfil_cognitivo: perfilCognitivo.toLowerCase() as PerfilCognitivoType,
+        perfil_personalidad: perfilPersonalidad,
+        nivel_conocimientos: nivelConocimientos as NivelConocimientosType,
+        id_clase: idClase,
+        mensaje_usuario: mensajeUsuario,
+        objetivos_especificos: objetivosEspecificos
+      };
+
+      console.log('Enviando datos para plan de estudio:', requestData);
+      
+      const response = await fetch(`${API_BASE_URL}/api/psicopedagogico/plan-estudio/${estudianteId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta del plan de estudio:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar plan de estudio:', error);
+      throw error;
+    }
+  }
+
+  // Evaluar comprensión del estudiante
+  async evaluarComprension(
+    estudianteId: number,
+    perfilCognitivo: string,
+    perfilPersonalidad: string,
+    nivelConocimientos: string,
+    idClase: number,
+    mensajeUsuario: string,
+    respuestasEstudiante?: string
+  ): Promise<RespuestaPsicopedagogicaDTO> {
+    try {
+      const requestData: EvaluacionComprensionRequestDTO = {
+        perfil_cognitivo: perfilCognitivo.toLowerCase() as PerfilCognitivoType,
+        perfil_personalidad: perfilPersonalidad,
+        nivel_conocimientos: nivelConocimientos as NivelConocimientosType,
+        id_clase: idClase,
+        mensaje_usuario: mensajeUsuario,
+        respuestas_estudiante: respuestasEstudiante
+      };
+
+      console.log('Enviando datos para evaluación de comprensión:', requestData);
+      
+      const response = await fetch(`${API_BASE_URL}/api/psicopedagogico/evaluacion/${estudianteId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta de la evaluación de comprensión:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar evaluación de comprensión:', error);
+      throw error;
+    }
   }
 }
 

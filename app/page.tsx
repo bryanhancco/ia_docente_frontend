@@ -1,24 +1,25 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import Header from './landing_page/components/landing/Header'
+import HeroSection from './landing_page/components/landing/HeroSection'
+import FeaturesSection from './landing_page/components/landing/FeaturesSection'
+import RolesSection from './landing_page/components/landing/RolesSection'
+import ProcessSection from './landing_page/components/landing/ProcessSection'
+import TestimonialsSection from './landing_page/components/landing/TestimonialsSection'
+import CTASection from './landing_page/components/landing/CTASection'
+import Footer from './landing_page/components/landing/Footer'
 
 export default function Home() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Redirect to login page
-    router.push('/login');
-  }, [router]);
-
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">DocentePlus AI</h1>
-          <p>Redirecting to login...</p>
-        </div>
+    <div className="min-h-screen">
+      <Header />
+      <main>
+        <HeroSection />
+        <FeaturesSection />
+        <RolesSection />
+        <ProcessSection />
+        <TestimonialsSection />
+        <CTASection />
       </main>
+      <Footer />
     </div>
-  );
+  )
 }
