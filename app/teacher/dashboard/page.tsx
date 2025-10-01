@@ -31,8 +31,7 @@ export default function DashboardPage() {
         }
 
         const userData = JSON.parse(userDataString);
-        const docenteData = await apiService.getDocente(userData.id);
-        setDocente(docenteData);
+        setDocente(userData);
       } catch (error) {
         console.error('Error loading user data:', error);
         // Clear invalid session and redirect to login
