@@ -77,8 +77,20 @@ export default function JoinClassPage() {
     setError(null);
 
     try {
+      // 1. Inscribir al estudiante en la clase
       await apiService.inscribirEstudianteClase(enrollmentData);
-      router.push('/student/classes');
+      
+      // 2. Inicializar automáticamente el progreso del estudiante
+      try {
+        await apiService.inicializarProgresoEstudiante(student!.id, enrollmentData.id_clase);
+        console.log('Progreso inicializado exitosamente');
+      } catch (progressError) {
+        console.warn('Error al inicializar progreso:', progressError);
+        // No lanzar error aquí, ya que la inscripción fue exitosa
+      }
+      
+      // 3. Redirigir directamente a la vista de la clase específica
+      router.push(`/student/classes/${enrollmentData.id_clase}`);
     } catch (error) {
       console.error('Error enrolling in class:', error);
       setError(error instanceof Error ? error.message : 'Error al inscribirse en la clase');
@@ -103,52 +115,81 @@ export default function JoinClassPage() {
   }
 
   const renderEnterIdStep = () => (
-    <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] p-8">
+    <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border border-white/20 p-8">
       <div className="text-center mb-8">
-        <h2 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-2">
+        <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
+          </svg>
+        </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">
           Unirse a una Clase
         </h2>
-        <p className="text-[#49739c] text-base">
+        <p className="text-gray-600">
           Ingresa el ID de la clase proporcionado por tu docente
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="mb-6 backdrop-blur-md bg-red-100/80 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+            </svg>
+            <p className="text-red-700 text-sm font-medium">{error}</p>
+          </div>
         </div>
       )}
 
       <form onSubmit={handleClassIdSubmit} className="space-y-6">
-        <div>
-          <label className="block text-[#0d141c] text-sm font-medium mb-2">
+        <div className="space-y-2">
+          <label className="block text-gray-700 text-sm font-semibold">
             ID de la Clase *
           </label>
-          <input
-            type="number"
-            value={classId}
-            onChange={(e) => setClassId(e.target.value)}
-            required
-            placeholder="Ej: 12345"
-            className="w-full px-4 py-3 border border-[#cedbe8] rounded-lg text-[#0d141c] bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0d80f2] focus:border-[#0d80f2]"
-          />
-          <p className="text-[#49739c] text-sm mt-2">
-            El docente debe proporcionarte este número único para acceder a la clase
-          </p>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+              </svg>
+            </div>
+            <input
+              type="number"
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              required
+              placeholder="Ej: 12345"
+              className="w-full pl-10 pr-4 py-3 backdrop-blur-md bg-white/70 border border-blue-200/50 rounded-xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            />
+          </div>
+          <div className="backdrop-blur-md bg-blue-50/70 rounded-lg p-3 border border-blue-200/30">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+              </svg>
+              <p className="text-blue-700 text-sm">
+                El docente debe proporcionarte este número único para acceder a la clase
+              </p>
+            </div>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={isLoading || !classId}
-          className="w-full bg-[#0d80f2] text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           {isLoading ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               Verificando...
             </>
           ) : (
-            'Continuar'
+            <>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd"/>
+              </svg>
+              Continuar
+            </>
           )}
         </button>
       </form>
@@ -156,93 +197,184 @@ export default function JoinClassPage() {
   );
 
   const renderSetLevelsStep = () => (
-    <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] p-8">
+    <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border border-white/20 p-8">
       <div className="text-center mb-8">
-        <h2 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-2">
+        <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+          </svg>
+        </div>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">
           Configura tu Perfil para la Clase
         </h2>
-        <p className="text-[#49739c] text-base">
-          Esto nos ayudará a personalizar la experiencia de aprendizaje
+        <p className="text-gray-600">
+          Esto nos ayudará a personalizar tu experiencia de aprendizaje
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="mb-6 backdrop-blur-md bg-red-100/80 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+            </svg>
+            <p className="text-red-700 text-sm font-medium">{error}</p>
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleLevelsSubmit} className="space-y-6">
-        <div>
-          <label className="block text-[#0d141c] text-sm font-medium mb-3">
-            Nivel de Conocimientos *
-          </label>
-          <div className="space-y-2">
-            {['Sin conocimiento', 'Básico', 'Intermedio', 'Experto'].map((level) => (
-              <label key={level} className="flex items-center">
+      <form onSubmit={handleLevelsSubmit} className="space-y-8">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <label className="text-lg font-bold text-gray-800">
+              Nivel de Conocimientos *
+            </label>
+          </div>
+          
+          <div className="space-y-3">
+            {['Sin conocimiento', 'Básico', 'Intermedio', 'Experto'].map((level, index) => (
+              <label key={level} className="group backdrop-blur-md bg-white/50 rounded-xl p-4 border border-blue-200/30 hover:bg-white/70 cursor-pointer transition-all duration-200 flex items-center">
                 <input
                   type="radio"
                   name="nivel_conocimientos"
                   value={level}
                   checked={enrollmentData.nivel_conocimientos === level}
                   onChange={(e) => handleLevelChange('nivel_conocimientos', e.target.value)}
-                  className="mr-3 text-[#0d80f2] focus:ring-[#0d80f2]"
+                  className="sr-only"
                   required
                 />
-                <span className="text-[#0d141c]">{level}</span>
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center transition-all duration-200 ${
+                  enrollmentData.nivel_conocimientos === level 
+                    ? 'border-blue-500 bg-blue-500' 
+                    : 'border-gray-300 group-hover:border-blue-300'
+                }`}>
+                  {enrollmentData.nivel_conocimientos === level && (
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    index === 0 ? 'bg-gray-100' : 
+                    index === 1 ? 'bg-yellow-100' : 
+                    index === 2 ? 'bg-blue-100' : 'bg-green-100'
+                  }`}>
+                    {index === 0 && <span className="text-gray-600 text-lg">📚</span>}
+                    {index === 1 && <span className="text-yellow-600 text-lg">🌱</span>}
+                    {index === 2 && <span className="text-blue-600 text-lg">🚀</span>}
+                    {index === 3 && <span className="text-green-600 text-lg">🏆</span>}
+                  </div>
+                  <span className="text-gray-800 font-medium">{level}</span>
+                </div>
               </label>
             ))}
           </div>
-          <p className="text-[#49739c] text-sm mt-2">
-            ¿Qué tanto conoces sobre el tema de esta clase?
-          </p>
+          
+          <div className="backdrop-blur-md bg-blue-50/70 rounded-lg p-3 border border-blue-200/30">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+              </svg>
+              <p className="text-blue-700 text-sm">
+                ¿Qué tanto conoces sobre el tema de esta clase?
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-[#0d141c] text-sm font-medium mb-3">
-            Nivel de Motivación *
-          </label>
-          <div className="space-y-2">
-            {['Sin conocimiento', 'Básico', 'Intermedio', 'Experto'].map((level) => (
-              <label key={level} className="flex items-center">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd"/>
+              </svg>
+            </div>
+            <label className="text-lg font-bold text-gray-800">
+              Nivel de Motivación *
+            </label>
+          </div>
+          
+          <div className="space-y-3">
+            {['Baja', 'Media', 'Alta'].map((level, index) => (
+              <label key={level} className="group backdrop-blur-md bg-white/50 rounded-xl p-4 border border-purple-200/30 hover:bg-white/70 cursor-pointer transition-all duration-200 flex items-center">
                 <input
                   type="radio"
                   name="nivel_motivacion"
                   value={level}
                   checked={enrollmentData.nivel_motivacion === level}
                   onChange={(e) => handleLevelChange('nivel_motivacion', e.target.value)}
-                  className="mr-3 text-[#0d80f2] focus:ring-[#0d80f2]"
+                  className="sr-only"
                   required
                 />
-                <span className="text-[#0d141c]">{level}</span>
+                <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center transition-all duration-200 ${
+                  enrollmentData.nivel_motivacion === level 
+                    ? 'border-purple-500 bg-purple-500' 
+                    : 'border-gray-300 group-hover:border-purple-300'
+                }`}>
+                  {enrollmentData.nivel_motivacion === level && (
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    index === 0 ? 'bg-gray-100' : 
+                    index === 1 ? 'bg-yellow-100' : 
+                    index === 2 ? 'bg-purple-100' : 'bg-pink-100'
+                  }`}>
+                    {index === 0 && <span className="text-gray-600 text-lg">😴</span>}
+                    {index === 1 && <span className="text-yellow-600 text-lg">😊</span>}
+                    {index === 2 && <span className="text-purple-600 text-lg">😃</span>}
+                  </div>
+                  <span className="text-gray-800 font-medium">{level}</span>
+                </div>
               </label>
             ))}
           </div>
-          <p className="text-[#49739c] text-sm mt-2">
-            ¿Qué tan motivado/a estás para aprender este tema?
-          </p>
+          
+          <div className="backdrop-blur-md bg-purple-50/70 rounded-lg p-3 border border-purple-200/30">
+            <div className="flex items-start gap-2">
+              <svg className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+              </svg>
+              <p className="text-purple-700 text-sm">
+                ¿Qué tan motivado/a estás para aprender este tema?
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-4">
           <button
             type="button"
             onClick={() => setCurrentStep(JoinStep.ENTER_ID)}
-            className="flex-1 border border-[#e7edf4] text-[#0d141c] py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 backdrop-blur-md bg-white/70 border border-gray-200 text-gray-700 py-3 px-4 rounded-xl font-medium hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2"
           >
-            ← Volver
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd"/>
+            </svg>
+            Volver
           </button>
           <button
             type="submit"
             disabled={isLoading || !enrollmentData.nivel_conocimientos || !enrollmentData.nivel_motivacion}
-            className="flex-1 bg-[#0d80f2] text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             {isLoading ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 Inscribiendo...
               </>
             ) : (
-              'Unirse a la Clase'
+              <>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                </svg>
+                Unirse a la Clase
+              </>
             )}
           </button>
         </div>
@@ -251,60 +383,65 @@ export default function JoinClassPage() {
   );
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"
       style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}
     >
-      <div className="layout-container flex h-full grow flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-          <div className="flex items-center gap-4 text-[#0d141c]">
-            <Link href="/student/classes" className="text-[#0d80f2] hover:underline">
-              ← Mis Clases
+      {/* Header with backdrop blur */}
+      <header className="backdrop-blur-md bg-white/70 border-b border-blue-200/50 sticky top-0 z-50">
+        <div className="flex items-center justify-center px-6 lg:px-10 py-4">
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/student/classes" 
+              className="inline-flex items-center gap-2 px-3 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 font-medium"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd"/>
+              </svg>
+              Mis Clases
             </Link>
-            <div className="size-6">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_6_330)">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                    fill="currentColor"
-                  />
-                </g>
-                <defs>
-                  <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"/></clipPath>
-                </defs>
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white">
+                <path
+                  d="M12 3L20 12L12 21L4 12L12 3Z"
+                  fill="currentColor"
+                />
               </svg>
             </div>
-            <h1 className="text-[#0d141c] text-xl font-bold leading-tight tracking-[-0.015em]">Unirse a Clase</h1>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Unirse a Clase
+            </h1>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Progress Indicator */}
-        <div className="flex justify-center py-4 bg-white border-b border-[#e7edf4]">
-          <div className="flex items-center space-x-4">
-            <div className={`flex items-center space-x-2 ${currentStep === JoinStep.ENTER_ID ? 'text-[#0d80f2]' : 'text-gray-400'}`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${currentStep === JoinStep.ENTER_ID ? 'bg-[#0d80f2] text-white' : 'bg-gray-300 text-gray-600'}`}>
-                1
+      {/* Progress Indicator */}
+      <div className="backdrop-blur-md bg-white/60 border-b border-blue-200/50 py-6">
+        <div className="flex justify-center">
+          <div className="flex items-center space-x-6">
+            <div className={`flex items-center space-x-3 ${currentStep === JoinStep.ENTER_ID ? 'text-blue-600' : 'text-green-600'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${currentStep === JoinStep.ENTER_ID ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-110' : 'bg-gradient-to-r from-green-500 to-green-600 text-white'}`}>
+                {currentStep === JoinStep.ENTER_ID ? '1' : '✓'}
               </div>
-              <span className="text-sm font-medium">ID de Clase</span>
+              <span className="text-sm font-medium hidden sm:block">ID de Clase</span>
             </div>
-            <div className="w-8 h-0.5 bg-gray-300"></div>
-            <div className={`flex items-center space-x-2 ${currentStep === JoinStep.SET_LEVELS ? 'text-[#0d80f2]' : 'text-gray-400'}`}>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${currentStep === JoinStep.SET_LEVELS ? 'bg-[#0d80f2] text-white' : 'bg-gray-300 text-gray-600'}`}>
+            <div className="w-12 h-1 bg-gradient-to-r from-blue-200 to-indigo-200 rounded-full">
+              <div className={`h-full rounded-full transition-all duration-500 ${currentStep === JoinStep.SET_LEVELS ? 'bg-gradient-to-r from-blue-500 to-indigo-500 w-full' : 'bg-gray-300 w-0'}`}></div>
+            </div>
+            <div className={`flex items-center space-x-3 ${currentStep === JoinStep.SET_LEVELS ? 'text-blue-600' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${currentStep === JoinStep.SET_LEVELS ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-110' : 'bg-gray-200 text-gray-500'}`}>
                 2
               </div>
-              <span className="text-sm font-medium">Configurar Perfil</span>
+              <span className="text-sm font-medium hidden sm:block">Configurar Perfil</span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="flex flex-1 justify-center items-center px-4 py-8">
-          <div className="w-full max-w-md">
-            {currentStep === JoinStep.ENTER_ID && renderEnterIdStep()}
-            {currentStep === JoinStep.SET_LEVELS && renderSetLevelsStep()}
-          </div>
+      {/* Main Content */}
+      <div className="px-4 py-8 lg:px-8">
+        <div className="max-w-md mx-auto">
+          {currentStep === JoinStep.ENTER_ID && renderEnterIdStep()}
+          {currentStep === JoinStep.SET_LEVELS && renderSetLevelsStep()}
         </div>
       </div>
     </div>

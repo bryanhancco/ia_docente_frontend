@@ -1,4 +1,12 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+import { getApiUrl, checkApiConnection } from './env-check';
+
+// Configuración de la URL base de la API con debugging
+const getApiBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  return envUrl;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Types based on the backend API
 export interface ClaseData {
@@ -20,10 +28,12 @@ export interface ClaseData {
   aspectos_motivacionales: string;
   estilo_material: string;
   tipo_recursos_generar: string;
+  estado?: boolean;
 }
 
 export interface ClaseResponse extends ClaseData {
   id: number;
+  estado: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -62,17 +72,36 @@ export interface DocenteCreateDTO {
   nombre: string;
   correo: string;
   password: string;
+  foto?: string;
+  foto_caricatura?: string;
 }
 
 export interface DocenteResponseDTO {
   id: number;
   nombre: string;
   correo: string;
+  foto?: string;
+  foto_caricatura?: string;
 }
 
 export interface DocenteLoginDTO {
   correo: string;
   password: string;
+}
+
+export interface DocenteUpdateFotoDTO {
+  foto_url: string;
+}
+
+export interface DocenteUpdateDTO {
+  nombre?: string;
+  correo?: string;
+  password?: string;
+}
+
+export interface FotoCaricaturaResponse {
+  foto_caricatura: string;
+  nombre_docente: string;
 }
 
 export interface LoginResponse {
@@ -221,9 +250,11 @@ export interface EstudianteClaseDetalleDTO {
   id_clase: number;
   nivel_conocimientos?: string;
   nivel_motivacion?: string;
+  estado?: boolean;
   estudiante_nombre: string;
   estudiante_correo: string;
   estudiante_perfil_cognitivo?: string;
+  estudiante_perfil_personalidad?: string;
   clase_nombre?: string;
   clase_tema?: string;
 }
@@ -260,6 +291,20 @@ export interface EvaluacionComprensionRequestDTO {
   respuestas_estudiante?: string;
 }
 
+// ====== INTERFACE PARA CHAT GENERAL PERSONALIZADO ======
+
+export interface ChatGeneralRequestDTO {
+  perfil_cognitivo: PerfilCognitivoType;
+  perfil_personalidad: string;
+  nivel_conocimientos: NivelConocimientosType;
+  id_clase: number;
+  historial_mensajes: Array<{
+    tipo: 'user' | 'bot';
+    contenido: string;
+  }>;
+  mensaje_actual: string;
+}
+
 export interface RespuestaPsicopedagogicaDTO {
   status: string;
   estudiante_id: number;
@@ -291,6 +336,260 @@ export interface EvaluacionComprensionResponseDTO {
   perfil_cognitivo: string;
   nivel_conocimientos: string;
   timestamp: string;
+}
+
+// ====== INTERFACES PARA FLASHCARDS ======
+
+export interface Flashcard {
+  id: number;
+  categoria: string;
+  dificultad: 'Básico' | 'Intermedio' | 'Avanzado';
+  pregunta: string;
+  respuesta: string;
+  tips_estudio: string;
+}
+
+export interface FlashcardsResponseDTO {
+  status: string;
+  estudiante_id: number;
+  clase_id: number;
+  flashcards: Flashcard[];
+  total_flashcards: number;
+  perfil_cognitivo: string;
+  timestamp: string;
+  mode?: string;
+}
+
+// ====== INTERFACES PARA QUIZ ======
+
+export interface PreguntaData {
+  id: number;
+  id_clase: number;
+  pregunta: string;
+  alternativa_a: string;
+  alternativa_b: string;
+  alternativa_c: string;
+  alternativa_d: string;
+  alternativa_correcta: number;
+  retroalimentacion_a: string;
+  retroalimentacion_b: string;
+  retroalimentacion_c: string;
+  retroalimentacion_d: string;
+  estado: boolean;
+}
+
+export interface RespuestaQuiz {
+  pregunta_id: number;
+  opcion_seleccionada: number;
+  es_correcta: boolean;
+  tiempo_respuesta?: number;
+}
+
+export interface ResultadoQuiz {
+  total_preguntas: number;
+  respuestas_correctas: number;
+  respuestas_incorrectas: number;
+  porcentaje_acierto: number;
+  tiempo_total?: number;
+  respuestas: RespuestaQuiz[];
+}
+
+// ====== INTERFACES PARA AGENTES ESPECIALIZADOS ======
+
+export type TipoAgenteEspecializado = 'guias-estudio' | 'mapas-conceptuales' | 'mapas-mentales' | 'resumenes-personalizados' | 'preguntas-rapidas';
+
+export interface ContenidoPersonalizadoRequestDTO {
+  tipo_agente: TipoAgenteEspecializado;
+  perfil_cognitivo: PerfilCognitivoType;
+  perfil_personalidad: string;
+  nivel_conocimientos: NivelConocimientosType;
+  id_clase: number;
+  mensaje_usuario: string;
+  preferencias_especificas?: string;
+}
+
+export interface ContenidoPersonalizadoResponseDTO {
+  status: string;
+  estudiante_id: number;
+  clase_id: number;
+  tipo_agente: TipoAgenteEspecializado;
+  contenido_generado: string;
+  perfil_cognitivo: string;
+  nivel_conocimientos: string;
+  timestamp: string;
+  metadata?: {
+    formato?: string;
+    estructura?: string;
+    elementos_visuales?: boolean;
+    interactividad?: boolean;
+  };
+}
+
+// ====== INTERFACES PARA CONTENIDO ESTUDIANTE ======
+
+export interface ContenidoEstudianteResponseDTO {
+  id: number;
+  id_clase: number;
+  orden: number;  // Agregar el campo orden que está en la tabla
+  indice: string;
+  contenido: string;
+  perfil_cognitivo: string;
+  tiempo_estimado: number;
+  estado: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type EstadoContenidoType = 'No iniciado' | 'En proceso' | 'Finalizado';
+
+export interface ContenidoEstudianteDataResponseDTO {
+  id: number;
+  id_contenido: number;
+  id_estudiante: number;
+  estado: EstadoContenidoType;
+  created_at: string;
+  modified_at: string;
+}
+
+export interface ContenidoEstudianteDataUpdateDTO {
+  estado: EstadoContenidoType;
+}
+
+export interface ClaseInteractivaResponseDTO {
+  id_clase: number;
+  contenidos_disponibles: ContenidoEstudianteResponseDTO[];
+  progreso_estudiante: ContenidoEstudianteDataResponseDTO[];
+  porcentaje_completado: number;
+}
+
+// ====== INTERFACES PARA NOTAS ======
+
+export interface NotaCreateDTO {
+  id_estudiante: number;
+  notas: string;
+  estado?: boolean;
+}
+
+export interface NotaResponseDTO {
+  id: number;
+  id_estudiante: number;
+  notas: string;
+  estado: boolean;
+}
+
+export interface NotaUpdateDTO {
+  notas?: string;
+  estado?: boolean;
+}
+
+// ====== INTERFACES PARA CONVERSACIONES ======
+
+export enum TipoEntidadEnum {
+  ESTUDIANTE = 1,
+  DOCENTE = 2,
+  CHATBOT = 3
+}
+
+export interface ConversacionCreateDTO {
+  id_emisor: number;
+  id_receptor: number;
+  tipo_emisor: TipoEntidadEnum;
+  tipo_receptor: TipoEntidadEnum;
+  mensaje: string;
+}
+
+export interface ConversacionResponseDTO {
+  id: number;
+  id_emisor: number;
+  id_receptor: number;
+  tipo_emisor: TipoEntidadEnum;
+  tipo_receptor: TipoEntidadEnum;
+  mensaje: string;
+  created_at: string;
+}
+
+export interface ConversacionQueryDTO {
+  id_emisor?: number;
+  id_receptor?: number;
+  tipo_emisor?: TipoEntidadEnum;
+  tipo_receptor?: TipoEntidadEnum;
+  limit?: number;
+  offset?: number;
+}
+
+// ====== INTERFACES PARA AUDIO PROCESSING ======
+
+export interface TTSRequestDTO {
+  text: string;
+  voice_model?: string;
+  save_to_db?: boolean;
+}
+
+export interface TTSResponseDTO {
+  message: string;
+  filename: string;
+  size: number;
+  duration_estimate: number;
+  voice_model: string;
+  download_url: string;
+}
+
+export interface STTRequestDTO {
+  audio_file: File;
+  language?: string;
+  save_transcript?: boolean;
+  save_audio?: boolean;
+}
+
+export interface STTResponseDTO {
+  message: string;
+  transcript: string;
+  confidence: number;
+  words_count: number;
+  character_count: number;
+  language: string;
+  transcript_file?: string;
+  transcript_download_url?: string;
+}
+
+export interface BatchTTSRequestDTO {
+  texts: string[];
+  voice_model?: string;
+}
+
+export interface BatchTTSResponseDTO {
+  message: string;
+  total_texts: number;
+  successful: number;
+  failed: number;
+  results: Array<{
+    success: boolean;
+    filename?: string;
+    size?: number;
+    error?: string;
+  }>;
+}
+
+export interface AudioVoicesResponseDTO {
+  message: string;
+  total_voices: number;
+  voices: Record<string, string>;
+}
+
+export interface AudioFormatsResponseDTO {
+  message: string;
+  total_formats: number;
+  formats: string[];
+}
+
+export interface AudioValidationResponseDTO {
+  message: string;
+  valid: boolean;
+  size?: number;
+  size_mb?: number;
+  format?: string;
+  filename: string;
+  error?: string;
 }
 
 class ApiService {
@@ -334,6 +633,13 @@ class ApiService {
   // Listar clases de un docente
   async getClases(idDocente: number): Promise<ClaseResponse[]> {
     return this.fetchWithErrorHandling(`/clases?id_docente=${idDocente}`);
+  }
+
+  // Cambiar estado de una clase (habilitar/deshabilitar)
+  async cambiarEstadoClase(idClase: number, estado: boolean): Promise<{message: string, id_clase: number, nuevo_estado: boolean}> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/estado?estado=${estado}`, {
+      method: 'PATCH',
+    });
   }
 
   // Subir archivos para una clase
@@ -406,6 +712,7 @@ class ApiService {
         aspectos_motivacionales: "Usar juegos y dinámicas",
         estilo_material: "Cercano y motivador",
         tipo_recursos_generar: "Esquema visual / mapa mental, Juego o simulación",
+        estado: true,
         created_at: "2024-01-15T10:00:00Z",
         updated_at: "2024-01-15T10:00:00Z"
       },
@@ -428,6 +735,7 @@ class ApiService {
         aspectos_motivacionales: "Relatos y narrativas históricas",
         estilo_material: "Narrativo/Storytelling",
         tipo_recursos_generar: "Video explicativo, Artículo o lectura",
+        estado: true,
         created_at: "2024-01-14T14:30:00Z",
         updated_at: "2024-01-14T14:30:00Z"
       },
@@ -450,6 +758,7 @@ class ApiService {
         aspectos_motivacionales: "Actividades hands-on y experimentos",
         estilo_material: "Practico y directo",
         tipo_recursos_generar: "Dinámica participativa",
+        estado: false,
         created_at: "2024-01-13T09:15:00Z",
         updated_at: "2024-01-13T09:15:00Z"
       }
@@ -553,6 +862,69 @@ class ApiService {
       return await this.fetchWithErrorHandling('/docentes');
     } catch (error) {
       console.warn('API not available for docentes list:', error);
+      throw error;
+    }
+  }
+
+  async updateDocente(idDocente: number, data: DocenteUpdateDTO): Promise<DocenteResponseDTO> {
+    try {
+      return await this.fetchWithErrorHandling(`/docentes/${idDocente}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      console.warn('API not available for docente update:', error);
+      throw error;
+    }
+  }
+
+  // Métodos para manejar fotos de docentes
+  async subirFotoDocente(idDocente: number, file: File): Promise<{ message: string; docente: DocenteResponseDTO }> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/docentes/${idDocente}/foto`, {
+        method: 'POST',
+        body: formData,
+        mode: 'cors',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.warn('API not available for foto upload:', error);
+      throw error;
+    }
+  }
+
+  async obtenerFotoCaricaturaDocente(idDocente: number): Promise<FotoCaricaturaResponse> {
+    try {
+      return await this.fetchWithErrorHandling(`/docentes/${idDocente}/foto-caricatura`);
+    } catch (error) {
+      console.warn('API not available for foto caricatura:', error);
+      // Retornar valores predeterminados en caso de error
+      return {
+        foto_caricatura: '/images/default-teacher-cartoon-avatar.png',
+        nombre_docente: 'Docente'
+      };
+    }
+  }
+
+  async eliminarFotoDocente(idDocente: number): Promise<{ message: string; docente: DocenteResponseDTO }> {
+    try {
+      return await this.fetchWithErrorHandling(`/docentes/${idDocente}/foto`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.warn('API not available for foto deletion:', error);
       throw error;
     }
   }
@@ -919,8 +1291,9 @@ class ApiService {
   }
 
   // Obtener clases de un estudiante
-  async getClasesEstudiante(idEstudiante: number): Promise<EstudianteClaseDetalleDTO[]> {
-    return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}/clases`);
+  async getClasesEstudiante(idEstudiante: number, incluirInactivas: boolean = false): Promise<EstudianteClaseDetalleDTO[]> {
+    const url = `/estudiantes/${idEstudiante}/clases${incluirInactivas ? '?incluir_inactivas=true' : ''}`;
+    return this.fetchWithErrorHandling(url);
   }
 
   // Inscribir estudiante en una clase
@@ -929,6 +1302,51 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(inscripcion),
     });
+  }
+
+  // Obtener estudiantes de una clase específica
+  async getEstudiantesClase(idClase: number): Promise<EstudianteClaseDetalleDTO[]> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/estudiantes`);
+  }
+
+  // Salir de una clase (cambiar estado a false)
+  async salirDeClase(idInscripcion: number): Promise<{ message: string; id_inscripcion: number; nuevo_estado: boolean }> {
+    return this.fetchWithErrorHandling(`/estudiante-clase/${idInscripcion}/salir`, {
+      method: 'PUT',
+    });
+  }
+
+  // Reincorporar a una clase (cambiar estado a true)
+  async reincorporarAClase(idInscripcion: number): Promise<{ message: string; id_inscripcion: number; nuevo_estado: boolean }> {
+    return this.fetchWithErrorHandling(`/estudiante-clase/${idInscripcion}/reincorporar`, {
+      method: 'PUT',
+    });
+  }
+
+  // Desinscribir estudiante de una clase (eliminar completamente)
+  async desinscribirEstudianteClase(idInscripcion: number): Promise<{ message: string }> {
+    return this.fetchWithErrorHandling(`/estudiante-clase/${idInscripcion}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Obtener todos los estudiantes (para agregar a clases)
+  async getAllEstudiantes(): Promise<EstudianteResponseDTO[]> {
+    return this.fetchWithErrorHandling('/estudiantes');
+  }
+
+  // Obtener estadísticas de estudiantes de una clase
+  async getEstudiantesClaseEstadisticas(idClase: number): Promise<{
+    total: number;
+    perfiles_cognitivos: {
+      Visual: number;
+      Auditivo: number;
+      Lector: number;
+      Kinestesico: number;
+    };
+    perfil_predominante: string;
+  }> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/estudiantes/estadisticas`);
   }
 
   // Obtener contenidos de una clase
@@ -1063,6 +1481,354 @@ class ApiService {
       console.error('Error al generar evaluación de comprensión:', error);
       throw error;
     }
+  }
+
+  // ====== MÉTODOS PARA FLASHCARDS ======
+
+  async generarFlashcards(estudianteId: number, idClase: number): Promise<FlashcardsResponseDTO> {
+    try {
+      console.log(`Generando flashcards para estudiante ${estudianteId} en clase ${idClase}`);
+      
+      const response = await fetch(`${API_BASE_URL}/clases/${idClase}/estudiantes/${estudianteId}/flashcards`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Flashcards generadas:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar flashcards:', error);
+      throw error;
+    }
+  }
+
+  // ====== MÉTODOS PARA QUIZ ======
+
+  async obtenerPreguntasClase(idClase: number): Promise<PreguntaData[]> {
+    try {
+      console.log(`Obteniendo preguntas para clase ${idClase}`);
+      
+      const response = await fetch(`${API_BASE_URL}/clases/${idClase}/preguntas`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Preguntas obtenidas:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al obtener preguntas:', error);
+      throw error;
+    }
+  }
+
+  async generarPreguntasClase(idClase: number): Promise<any> {
+    try {
+      console.log(`Generando preguntas para clase ${idClase}`);
+      
+      const response = await fetch(`${API_BASE_URL}/clases/${idClase}/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Proceso de generación completado:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar contenido de clase:', error);
+      throw error;
+    }
+  }
+
+  // ====== MÉTODOS PARA AGENTES ESPECIALIZADOS ======
+
+  // Generar contenido personalizado con agente especializado
+  async generarContenidoPersonalizado(
+    estudianteId: number,
+    requestData: ContenidoPersonalizadoRequestDTO
+  ): Promise<ContenidoPersonalizadoResponseDTO> {
+    try {
+      // Normalizar el perfil cognitivo
+      const normalizedData = {
+        ...requestData,
+        perfil_cognitivo: requestData.perfil_cognitivo.toLowerCase(),
+      };
+
+      console.log('Enviando datos para contenido personalizado:', normalizedData);
+      
+      const response = await fetch(`${API_BASE_URL}/api/agentes-especializados/generar/${estudianteId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(normalizedData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Contenido personalizado generado:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar contenido personalizado:', error);
+      throw error;
+    }
+  }
+
+  // Generar respuesta de chat general personalizado
+  async chatGeneralPersonalizado(
+    estudianteId: number,
+    requestData: ChatGeneralRequestDTO
+  ): Promise<RespuestaPsicopedagogicaDTO> {
+    try {
+      console.log('Enviando datos de chat general:', requestData);
+      
+      const response = await fetch(`${API_BASE_URL}/api/chat-general/${estudianteId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error en la respuesta del chat:', errorData);
+        throw new Error(`Error HTTP ${response.status}: ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta del chat generada:', data);
+      return data;
+    } catch (error) {
+      console.error('Error al generar respuesta del chat:', error);
+      throw error;
+    }
+  }
+
+  // ====== MÉTODOS PARA CONTENIDO ESTUDIANTE ======
+
+  // Generar índices de contenido para una clase
+  async generarIndicesContenido(idClase: number): Promise<ContenidoEstudianteResponseDTO[]> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/generar-indices-contenido`, {
+      method: 'POST',
+    });
+  }
+
+  // Actualizar contenido personalizado de un índice
+  async actualizarContenidoEstudiante(contenidoId: number): Promise<ContenidoEstudianteResponseDTO> {
+    return this.fetchWithErrorHandling(`/contenido-estudiante/${contenidoId}/actualizar-contenido`, {
+      method: 'PUT',
+    });
+  }
+
+  // Obtener contenido por clase
+  async obtenerContenidoEstudiantePorClase(idClase: number): Promise<ContenidoEstudianteResponseDTO[]> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/contenido-estudiante`);
+  }
+
+  // Obtener contenido por perfil cognitivo
+  async obtenerContenidoPorPerfil(idClase: number, perfilCognitivo: string): Promise<ContenidoEstudianteResponseDTO> {
+    return this.fetchWithErrorHandling(`/clases/${idClase}/contenido-estudiante/${perfilCognitivo}`);
+  }
+
+  // ====== MÉTODOS PARA PROGRESO DE ESTUDIANTES ======
+
+  // Inicializar progreso de estudiante en una clase
+  async inicializarProgresoEstudiante(estudianteId: number, idClase: number): Promise<any> {
+    return this.fetchWithErrorHandling(`/estudiantes/${estudianteId}/clases/${idClase}/inicializar-progreso`, {
+      method: 'POST',
+    });
+  }
+
+  // Obtener progreso completo de un estudiante en una clase
+  async obtenerProgresoClaseEstudiante(estudianteId: number, idClase: number): Promise<ClaseInteractivaResponseDTO> {
+    return this.fetchWithErrorHandling(`/estudiantes/${estudianteId}/clases/${idClase}/progreso`);
+  }
+
+  // Actualizar estado de progreso de un contenido
+  async actualizarEstadoProgreso(progresoId: number, estado: EstadoContenidoType): Promise<ContenidoEstudianteDataResponseDTO> {
+    return this.fetchWithErrorHandling(`/contenido-estudiante-data/${progresoId}/actualizar-estado`, {
+      method: 'PUT',
+      body: JSON.stringify({ estado }),
+    });
+  }
+
+  // ====== MÉTODOS PARA NOTAS ======
+
+  // Crear nueva nota
+  async crearNota(estudianteId: number, notas: string): Promise<NotaResponseDTO> {
+    return this.fetchWithErrorHandling(`/estudiantes/${estudianteId}/notas`, {
+      method: 'POST',
+      body: JSON.stringify({ id_estudiante: estudianteId, notas }),
+    });
+  }
+
+  // Obtener notas de un estudiante
+  async obtenerNotasEstudiante(estudianteId: number): Promise<NotaResponseDTO[]> {
+    return this.fetchWithErrorHandling(`/estudiantes/${estudianteId}/notas`);
+  }
+
+  // Actualizar una nota
+  async actualizarNota(notaId: number, datos: NotaUpdateDTO): Promise<NotaResponseDTO> {
+    return this.fetchWithErrorHandling(`/notas/${notaId}`, {
+      method: 'PUT',
+      body: JSON.stringify(datos),
+    });
+  }
+
+  // Eliminar una nota
+  async eliminarNota(notaId: number): Promise<{ message: string; id: number }> {
+    return this.fetchWithErrorHandling(`/notas/${notaId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ====== MÉTODOS PARA CONVERSACIONES ======
+
+  // Crear una nueva conversación
+  async crearConversacion(conversacion: ConversacionCreateDTO): Promise<ConversacionResponseDTO> {
+    return this.fetchWithErrorHandling('/conversaciones', {
+      method: 'POST',
+      body: JSON.stringify(conversacion),
+    });
+  }
+
+  // Obtener conversaciones con filtros
+  async obtenerConversaciones(filtros: ConversacionQueryDTO = {}): Promise<ConversacionResponseDTO[]> {
+    const params = new URLSearchParams();
+    
+    if (filtros.id_emisor !== undefined) params.append('id_emisor', filtros.id_emisor.toString());
+    if (filtros.id_receptor !== undefined) params.append('id_receptor', filtros.id_receptor.toString());
+    if (filtros.tipo_emisor !== undefined) params.append('tipo_emisor', filtros.tipo_emisor.toString());
+    if (filtros.tipo_receptor !== undefined) params.append('tipo_receptor', filtros.tipo_receptor.toString());
+    if (filtros.limit !== undefined) params.append('limit', filtros.limit.toString());
+    if (filtros.offset !== undefined) params.append('offset', filtros.offset.toString());
+
+    const queryString = params.toString();
+    const url = queryString ? `/conversaciones?${queryString}` : '/conversaciones';
+    
+    return this.fetchWithErrorHandling(url);
+  }
+
+  // Obtener historial de chat entre estudiante y chatbot de una clase
+  async obtenerHistorialChat(estudianteId: number, idClase: number, limit: number = 50): Promise<ConversacionResponseDTO[]> {
+    return this.fetchWithErrorHandling(`/conversaciones/chat/${estudianteId}/${idClase}?limit=${limit}`);
+  }
+
+  // Eliminar una conversación
+  async eliminarConversacion(conversacionId: number): Promise<{ message: string; id: number }> {
+    return this.fetchWithErrorHandling(`/conversaciones/${conversacionId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ====== MÉTODOS PARA AUDIO PROCESSING ======
+
+  // Text-to-Speech (TTS)
+  async textToSpeech(idClase: number, data: TTSRequestDTO): Promise<TTSResponseDTO> {
+    const formData = new FormData();
+    formData.append('text', data.text);
+    if (data.voice_model) formData.append('voice_model', data.voice_model);
+    if (data.save_to_db !== undefined) formData.append('save_to_db', data.save_to_db.toString());
+
+    const response = await fetch(`${API_BASE_URL}/audio/text-to-speech/${idClase}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Speech-to-Text (STT)
+  async speechToText(idClase: number, data: STTRequestDTO): Promise<STTResponseDTO> {
+    const formData = new FormData();
+    formData.append('audio_file', data.audio_file);
+    if (data.language) formData.append('language', data.language);
+    if (data.save_transcript !== undefined) formData.append('save_transcript', data.save_transcript.toString());
+    if (data.save_audio !== undefined) formData.append('save_audio', data.save_audio.toString());
+
+    const response = await fetch(`${API_BASE_URL}/audio/speech-to-text/${idClase}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+
+    return response.json();
+  }
+
+  // Batch Text-to-Speech
+  async batchTextToSpeech(idClase: number, data: BatchTTSRequestDTO): Promise<BatchTTSResponseDTO> {
+    return this.fetchWithErrorHandling(`/audio/batch-text-to-speech/${idClase}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Obtener voces disponibles
+  async getAvailableVoices(): Promise<AudioVoicesResponseDTO> {
+    return this.fetchWithErrorHandling('/audio/voices');
+  }
+
+  // Obtener formatos soportados
+  async getSupportedFormats(): Promise<AudioFormatsResponseDTO> {
+    return this.fetchWithErrorHandling('/audio/formats');
+  }
+
+  // Validar archivo de audio
+  async validateAudioFile(file: File): Promise<AudioValidationResponseDTO> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/audio/validate`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Error ${response.status}: ${errorText}`);
+    }
+
+    return response.json();
   }
 }
 

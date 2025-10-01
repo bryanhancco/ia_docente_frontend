@@ -352,44 +352,20 @@ export default function ContentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden"
-        style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}
-      >
-        <div className="layout-container flex h-full grow flex-col">
-          <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-            <div className="flex items-center gap-4 text-[#0d141c]">
-              <div className="size-4">
-                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <g clipPath="url(#clip0_6_330)">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                      fill="currentColor"
-                    />
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"/></clipPath>
-                  </defs>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center backdrop-blur-md bg-white/70 rounded-3xl p-12 shadow-2xl border border-white/20">
+            <div className="relative mx-auto mb-8 w-20 h-20">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl animate-pulse"></div>
+              <div className="absolute inset-2 bg-white rounded-xl flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
-              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
             </div>
-            <div className="flex flex-1 justify-end gap-8">
-              <button 
-                className="text-[#0d141c] text-sm font-medium leading-normal hover:text-[#0d80f2]"
-                onClick={() => router.back()}
-              >
-                ← Volver
-              </button>
-            </div>
-          </header>
-          <div className="px-40 flex flex-1 justify-center py-5 items-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#0d80f2] mx-auto mb-4"></div>
-              <h2 className="text-[#0d141c] text-[22px] font-bold leading-tight mb-2">Cargando contenido</h2>
-              <p className="text-[#49739c] text-base">Obteniendo el material generado...</p>
-            </div>
+            <h2 className="text-gray-800 text-2xl font-bold mb-3">Cargando contenido</h2>
+            <p className="text-gray-600">Obteniendo el material generado...</p>
           </div>
         </div>
       </div>
@@ -419,7 +395,7 @@ export default function ContentDetailPage() {
                   </defs>
                 </svg>
               </div>
-              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
+              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">LearningForLive</h2>
             </div>
             <div className="flex flex-1 justify-end gap-8">
               <button 
@@ -431,17 +407,17 @@ export default function ContentDetailPage() {
             </div>
           </header>
           <div className="px-40 flex flex-1 justify-center py-5 items-center">
-            <div className="text-center">
-              <div className="text-red-500 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 256 256" className="mx-auto">
-                  <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm-8,56a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm8,104a12,12,0,1,1,12-12A12,12,0,0,1,128,184Z"/>
+            <div className="text-center backdrop-blur-md bg-white/70 rounded-3xl p-12 shadow-2xl border border-white/20 max-w-md">
+              <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
                 </svg>
               </div>
-              <h2 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-4">Error al cargar el contenido</h2>
-              <p className="text-red-600 text-base mb-6">{error || 'Contenido no encontrado'}</p>
-              <button
+              <h2 className="text-gray-800 text-xl font-bold mb-3">Error al cargar contenido</h2>
+              <p className="text-gray-600 mb-6">{error || 'No se pudo encontrar el contenido solicitado'}</p>
+              <button 
                 onClick={() => router.back()}
-                className="bg-[#0d80f2] text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg"
               >
                 Volver
               </button>
@@ -453,9 +429,7 @@ export default function ContentDetailPage() {
   }
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden"
-      style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}
-    >
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Add custom styles for HTML content */}
       <style jsx global>{`
         .html-content {
@@ -472,35 +446,27 @@ export default function ContentDetailPage() {
         
         .html-content .container {
           max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        
-        /* Override any conflicting styles from the HTML content */
-        .html-content h1, 
-        .html-content h2, 
-        .html-content h3, 
-        .html-content h4, 
-        .html-content h5, 
-        .html-content h6 {
-          margin-top: 0;
-          font-family: inherit;
-          font-weight: bold;
         }
         
         .html-content h1 {
-          font-size: 2.25em;
+          font-size: 2.5em;
           margin-bottom: 0.5em;
+          color: #0d80f2;
+          font-weight: 700;
         }
         
         .html-content h2 {
-          font-size: 1.75em;
+          font-size: 2em;
           margin-bottom: 0.4em;
+          color: #2c5aa0;
+          font-weight: 600;
         }
         
         .html-content h3 {
           font-size: 1.5em;
           margin-bottom: 0.3em;
+          color: #4a6fa5;
+          font-weight: 600;
         }
         
         .html-content p {
@@ -520,6 +486,7 @@ export default function ContentDetailPage() {
         
         .html-content strong {
           font-weight: 600;
+          color: #0d80f2;
         }
         
         .html-content em {
@@ -530,11 +497,13 @@ export default function ContentDetailPage() {
           border-left: 4px solid #0d80f2;
           margin: 1rem 0;
           padding-left: 1rem;
-          background-color: #f8f9fa;
+          background-color: rgba(248, 249, 250, 0.8);
+          backdrop-filter: blur(10px);
+          border-radius: 0.5rem;
         }
         
         .html-content code {
-          background-color: #f1f3f4;
+          background-color: rgba(241, 243, 244, 0.8);
           padding: 0.2em 0.4em;
           border-radius: 3px;
           font-family: 'Courier New', monospace;
@@ -542,12 +511,13 @@ export default function ContentDetailPage() {
         }
         
         .html-content pre {
-          background-color: #f8f9fa;
-          border: 1px solid #e9ecef;
-          border-radius: 6px;
+          background-color: rgba(248, 249, 250, 0.8);
+          border: 1px solid rgba(233, 236, 239, 0.6);
+          border-radius: 0.75rem;
           padding: 1rem;
           overflow-x: auto;
           margin: 1rem 0;
+          backdrop-filter: blur(10px);
         }
         
         .html-content pre code {
@@ -560,17 +530,21 @@ export default function ContentDetailPage() {
           max-width: 100%;
           border-collapse: collapse;
           margin: 1rem 0;
+          background-color: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(10px);
+          border-radius: 0.5rem;
+          overflow: hidden;
         }
         
         .html-content table th,
         .html-content table td {
-          border: 1px solid #dee2e6;
+          border: 1px solid rgba(222, 226, 230, 0.6);
           padding: 0.75rem;
           text-align: left;
         }
         
         .html-content table th {
-          background-color: #f8f9fa;
+          background-color: rgba(248, 249, 250, 0.9);
           font-weight: 600;
         }
         
@@ -583,9 +557,10 @@ export default function ContentDetailPage() {
           text-align: center;
           margin: 20px 0;
           padding: 15px;
-          background-color: #f8f9fa;
+          background-color: rgba(248, 249, 250, 0.9);
           border-left: 4px solid #0d80f2;
-          border-radius: 4px;
+          border-radius: 0.75rem;
+          backdrop-filter: blur(10px);
         }
         
         /* Ensure responsive behavior */
@@ -598,7 +573,7 @@ export default function ContentDetailPage() {
         .html-content img {
           max-width: 100%;
           height: auto;
-          border-radius: 6px;
+          border-radius: 0.75rem;
           margin: 1rem 0;
         }
         
@@ -628,73 +603,88 @@ export default function ContentDetailPage() {
         }
       `}</style>
       
-      <div className="layout-container flex h-full grow flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-          <div className="flex items-center gap-4 text-[#0d141c]">
-            <div className="size-4">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_6_330)">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                    fill="currentColor"
-                  />
-                </g>
-                <defs>
-                  <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"/></clipPath>
-                </defs>
-              </svg>
+      {/* Header moderno con glassmorphism */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/20 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414-1.414L9 5.586 7.707 4.293a1 1 0 00-1.414 1.414L8.586 8l-2.293 2.293a1 1 0 101.414 1.414L9 10.414l1.293 1.293a1 1 0 001.414-1.414L10.414 9l2.293-2.293a1 1 0 000-1.414z" clipRule="evenodd"/>
+                </svg>
+              </div>
+              <h1 className="text-gray-800 text-xl font-bold">LearningForLive</h1>
             </div>
-            <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
-          </div>
-          <div className="flex flex-1 justify-end gap-8">
-            <div className="flex items-center gap-9">
+            <nav className="flex items-center gap-6">
               <button 
-                className="text-[#0d141c] text-sm font-medium leading-normal hover:text-[#0d80f2]"
                 onClick={() => router.back()}
+                className="flex items-center gap-2 text-gray-700 hover:text-blue-600 font-semibold transition-colors duration-200"
               >
-                ← Volver
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd"/>
+                </svg>
+                Volver
               </button>
               <button 
-                className="text-[#0d141c] text-sm font-medium leading-normal hover:text-[#0d80f2]"
                 onClick={downloadAsHTML}
+                className="flex items-center gap-2 backdrop-blur-md bg-green-100/80 hover:bg-green-200/80 text-green-700 font-semibold py-2 px-4 rounded-xl transition-all duration-200 border border-green-200"
                 title="Descargar como HTML"
               >
-                💾 Descargar
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
+                </svg>
+                Descargar
               </button>
               <button 
-                className="text-[#0d141c] text-sm font-medium leading-normal hover:text-[#0d80f2]"
                 onClick={() => window.print()}
+                className="flex items-center gap-2 backdrop-blur-md bg-purple-100/80 hover:bg-purple-200/80 text-purple-700 font-semibold py-2 px-4 rounded-xl transition-all duration-200 border border-purple-200"
               >
-                🖨️ Imprimir
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zM5 14H4v-2h1v2zm7 0v2H8v-2h4zM9 3h2v1H9V3z" clipRule="evenodd"/>
+                </svg>
+                Imprimir
               </button>
-            </div>
-            <div
-              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
-              style={{backgroundImage: 'url("https://cdn.usegalileo.ai/stability/3ba31e13-5e7f-4ad2-bd33-7b5ad8e5ad55.png")'}}
-            />
+            </nav>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Content Area */}
-        <div className="flex flex-1 justify-center py-8 px-4">
-          <div className="w-full max-w-4xl">
-            {/* Content Header */}
-            <div className="mb-8 p-6 bg-white rounded-lg shadow-sm border border-[#e7edf4]">
-              <div className="flex items-start justify-between mb-4">
+      {/* Content Area */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="space-y-8">
+          {/* Content Header */}
+          <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-xl border border-white/20 p-8">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2v8h12V6H4z" clipRule="evenodd"/>
+                  </svg>
+                </div>
                 <div>
-                  <h1 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-2">
+                  <h1 className="text-gray-800 text-3xl font-bold mb-2">
                     {content.tipo_recurso_generado}
                   </h1>
-                  <div className="flex items-center gap-4 text-sm text-[#49739c]">
-                    <span>ID: {content.id}</span>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                      </svg>
+                      ID: {content.id}
+                    </span>
                     <span>•</span>
-                    <span>Clase ID: {content.id_clase}</span>
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      Clase ID: {content.id_clase}
+                    </span>
                     <span>•</span>
-                    <span>
-                      Creado: {new Date(content.created_at).toLocaleDateString('es-ES', {
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
+                      </svg>
+                      {new Date(content.created_at).toLocaleDateString('es-ES', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -704,32 +694,46 @@ export default function ContentDetailPage() {
                     </span>
                   </div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  content.estado 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {content.estado ? 'Activo' : 'Inactivo'}
-                </div>
+              </div>
+              <div className={`px-4 py-2 rounded-xl text-sm font-semibold shadow-lg ${
+                content.estado 
+                  ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200' 
+                  : 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200'
+              }`}>
+                {content.estado ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                    </svg>
+                    Activo
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                    </svg>
+                    Inactivo
+                  </span>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* HTML Content */}
-            <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] overflow-hidden">
-              <div 
-                className="html-content"
-                dangerouslySetInnerHTML={{ __html: sanitizeHTML(content.contenido) }}
+          {/* HTML Content */}
+          <div className="backdrop-blur-md bg-white/70 rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+            <div 
+              className="html-content p-8"
+              dangerouslySetInnerHTML={{ __html: sanitizeHTML(content.contenido) }}
+            />
+          </div>
 
-              />
-            </div>
-
-            {/* Footer */}
-            <div className="mt-8 p-4 text-center text-sm text-[#49739c]">
-              <p>Material generado por DocentePlus AI • Personalizado para el perfil de aprendizaje específico</p>
-              <p className="mt-1">
-                Última actualización: {new Date(content.updated_at).toLocaleDateString('es-ES')}
-              </p>
-            </div>
+          {/* Footer */}
+          <div className="backdrop-blur-md bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200 rounded-2xl p-6 text-center">
+            <p className="text-blue-800 font-semibold mb-2">Material generado por LearningForLive</p>
+            <p className="text-blue-600 text-sm">
+              Personalizado para el perfil de aprendizaje específico • 
+              Última actualización: {new Date(content.updated_at).toLocaleDateString('es-ES')}
+            </p>
           </div>
         </div>
       </div>

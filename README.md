@@ -1,4 +1,4 @@
-# DocentePlus AI - Frontend
+# LearningForLive - Frontend
 
 Una aplicación web desarrollada en Next.js para la creación de clases y sílabos educativos con inteligencia artificial.
 

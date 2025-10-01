@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle } from 'lucide-react'
 export default function CTASection() {
   return (
     <section className="py-20 bg-gradient-hero relative overflow-hidden">
-      <div className="absolute inset-0 bg-black/20"></div>
+      <div className="absolute inset-0 bg-black"></div>
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center text-white">
           <h2 className="text-3xl md:text-5xl font-bold mb-6">

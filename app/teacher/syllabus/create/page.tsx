@@ -54,7 +54,7 @@ export default function CreateSyllabusPage() {
                   </defs>
                 </svg>
               </div>
-              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
+              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">LearningForLive</h2>
             </div>
           </header>
           <div className="px-40 flex flex-1 justify-center py-5 items-center">
@@ -89,7 +89,7 @@ export default function CreateSyllabusPage() {
                 </defs>
               </svg>
             </div>
-            <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
+            <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">LearningForLive</h2>
           </div>
           <div className="flex flex-1 justify-end gap-8">
             <div className="flex items-center gap-9">

@@ -1,37 +1,104 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  apiService, 
-  EstudianteResponseDTO, 
-  ClaseResponse, 
-  ContenidoGenerado,
-  ApoyoPsicopedagogicoRequestDTO,
-  RespuestaPsicopedagogicaDTO,
-  PlanEstudioResponseDTO,
-  EvaluacionComprensionResponseDTO,
-  PerfilCognitivoType,
-  NivelConocimientosType
+import { apiService, TipoEntidadEnum } from '../../../lib/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+
+// Componentes separados
+import ChatModal from './chat-view/ChatModal';
+import ContenidoClaseTab from './tab-contents/ContenidoClaseTab';
+import ResumenesDiagramasTab from './tab-contents/ResumenesDiagramasTab';
+import EvaluacionTab from './tab-contents/EvaluacionTab';
+import NotasTab from './tab-contents/NotasTab';
+import ClaseInteractivaModal from './tab-contents/ClaseInteractivaModal';
+import type { 
+  EstudianteResponseDTO, ClaseResponse, ContenidoGenerado, ArchivoInfo,
+  PerfilCognitivoType, NivelConocimientosType, Flashcard, FlashcardsResponseDTO,
+  PreguntaData, RespuestaQuiz, ResultadoQuiz, TipoAgenteEspecializado,
+  ContenidoPersonalizadoRequestDTO, ContenidoPersonalizadoResponseDTO,
+  RespuestaPsicopedagogicaDTO, ChatGeneralRequestDTO,
+  ClaseInteractivaResponseDTO, ContenidoEstudianteResponseDTO, ContenidoEstudianteDataResponseDTO,
+  EstadoContenidoType, NotaResponseDTO, NotaCreateDTO, NotaUpdateDTO,
+  ConversacionResponseDTO
 } from '../../../lib/api';
+
+// Tipos para el chat con audio (debe coincidir con ChatModal)
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'bot';
+  content: string;
+  timestamp: Date;
+  audioUrl?: string; // URL del audio para reproducir
+  isAudioMessage?: boolean; // Si el mensaje original fue de audio
+}
 
 export default function ClassDetailPage() {
   const router = useRouter();
   const { id: classId } = useParams();
   const [student, setStudent] = useState<EstudianteResponseDTO | null>(null);
   const [classData, setClassData] = useState<ClaseResponse | null>(null);
-  const [contents, setContents] = useState<ContenidoGenerado[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  
+  // Estado para tabs principales
+  const [activeTab, setActiveTab] = useState<'contenido-clase' | 'detalles-clase' | 'resumenes-diagramas' | 'evaluacion' | 'notas'>('contenido-clase');
+  
+  // Estados para contenido de clase interactivo
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [claseInteractiva, setClaseInteractiva] = useState<ClaseInteractivaResponseDTO | null>(null);
+  const [contenidoActual, setContenidoActual] = useState<ContenidoEstudianteResponseDTO | null>(null);
+  const [progresoActual, setProgresoActual] = useState<ContenidoEstudianteDataResponseDTO | null>(null);
+  const [contenidoPaginado, setContenidoPaginado] = useState<string[]>([]);
+  const [paginaActual, setPaginaActual] = useState(0);
+  const [loadingContenido, setLoadingContenido] = useState(false);
+  
+  // Estados para notas
+  const [notas, setNotas] = useState<NotaResponseDTO[]>([]);
+  const [nuevaNota, setNuevaNota] = useState('');
+  const [editandoNota, setEditandoNota] = useState<number | null>(null);
+  const [textoEditando, setTextoEditando] = useState('');
+  const [loadingNotas, setLoadingNotas] = useState(false);
+  
+  // Estados para flashcards y quiz
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [loadingFlashcards, setLoadingFlashcards] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [studyMode, setStudyMode] = useState<'all' | 'basic' | 'intermediate' | 'advanced'>('all');
+  
+  const [preguntas, setPreguntas] = useState<PreguntaData[]>([]);
+  const [loadingQuiz, setLoadingQuiz] = useState(false);
+  const [quizIniciado, setQuizIniciado] = useState(false);
+  const [preguntaActual, setPreguntaActual] = useState(0);
+  const [respuestasUsuario, setRespuestasUsuario] = useState<RespuestaQuiz[]>([]);
+  const [respuestaSeleccionada, setRespuestaSeleccionada] = useState<number | null>(null);
+  const [mostrarRetroalimentacion, setMostrarRetroalimentacion] = useState(false);
+  const [quizTerminado, setQuizTerminado] = useState(false);
+  const [resultadoQuiz, setResultadoQuiz] = useState<ResultadoQuiz | null>(null);
+  const [tiempoInicio, setTiempoInicio] = useState<Date | null>(null);
+
+  // Estados para chatbot y detalles de clase
+  const [contents, setContents] = useState<ContenidoGenerado[]>([]);
   const [showChatbot, setShowChatbot] = useState(false);
-  // Estado para tabs de materiales
-  const [showCustomTab, setShowCustomTab] = useState(false);
-  // Estados para el chatbot y agente psicopedagógico
-  const [chatMessages, setChatMessages] = useState<Array<{id: string, type: 'user' | 'bot', content: string, timestamp: Date}>>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [chatMode, setChatMode] = useState<'general' | 'apoyo' | 'plan' | 'evaluacion'>('general');
+  const [originalFiles, setOriginalFiles] = useState<ArchivoInfo[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(false);
+  const [fotoCaricaturaDocente, setFotoCaricaturaDocente] = useState<string>('/images/default-teacher-cartoon-avatar.png');
+  const [nombreDocente, setNombreDocente] = useState<string>('Docente');
+  
+  // Estados para historial de conversaciones
+  const [historialConversaciones, setHistorialConversaciones] = useState<ConversacionResponseDTO[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+  
+
 
   useEffect(() => {
     // Check if user is logged in
@@ -42,7 +109,7 @@ export default function ClassDetailPage() {
     }
 
     try {
-      const studentData: EstudianteResponseDTO = JSON.parse(studentDataString);
+      const studentData = JSON.parse(studentDataString);
       setStudent(studentData);
       loadClassData();
     } catch (error) {
@@ -50,6 +117,382 @@ export default function ClassDetailPage() {
       router.push('/student/login');
     }
   }, [router, classId]);
+
+  // Cargar datos iniciales y configurar progreso del estudiante
+  useEffect(() => {
+    if (student && classId) {
+      inicializarProgresoEstudiante();
+    }
+  }, [student, classId]);
+
+  // Cargar notas cuando se cambia a la tab de notas
+  useEffect(() => {
+    if (activeTab === 'notas' && student) {
+      cargarNotas();
+    }
+  }, [activeTab, student]);
+
+  // Cargar historial de conversaciones cuando se abre el chatbot
+  useEffect(() => {
+    if (showChatbot && student && classId) {
+      cargarHistorialConversaciones();
+    }
+  }, [showChatbot, student, classId]);
+
+  const loadClassData = async () => {
+    if (!classId) return;
+    
+    try {
+      const data = await apiService.getClase(Number(classId));
+      setClassData(data);
+
+      // Cargar contenidos generados de la clase
+      try {
+        const contentsData = await apiService.getContenidos(Number(classId));
+        setContents(contentsData);
+      } catch (error) {
+        console.log('No hay contenidos generados aún');
+      }
+
+      // Cargar foto caricatura del docente
+      try {
+        const fotoResponse = await apiService.obtenerFotoCaricaturaDocente(data.id_docente);
+        setFotoCaricaturaDocente(fotoResponse.foto_caricatura);
+        setNombreDocente(fotoResponse.nombre_docente);
+      } catch (error) {
+        console.log('No se pudo cargar la foto del docente');
+      }
+
+      // Cargar archivos originales
+      await loadOriginalFiles();
+
+      // Verificar si el estudiante ya está inscrito
+      if (student) {
+        try {
+          const progresoResponse = await apiService.obtenerProgresoClaseEstudiante(student.id, Number(classId));
+          setIsAlreadyEnrolled(true);
+        } catch (error) {
+          // Si hay error, probablemente no está inscrito
+          setIsAlreadyEnrolled(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading class data:', error);
+      setError('Error al cargar los datos de la clase');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ========== FUNCIONES PARA CONTENIDO INTERACTIVO ==========
+
+  const inicializarProgresoEstudiante = async () => {
+    if (!student || !classId) return;
+
+    try {
+      // Inicializar progreso si es necesario
+      await apiService.inicializarProgresoEstudiante(student.id, Number(classId));
+      
+      // Cargar progreso actual
+      await cargarProgresoClase();
+    } catch (error) {
+      console.error('Error al inicializar progreso:', error);
+    }
+  };
+
+  const cargarProgresoClase = async () => {
+    if (!student || !classId) return;
+
+    try {
+      // Cargar el progreso completo del estudiante en la clase
+      const progreso = await apiService.obtenerProgresoClaseEstudiante(student.id, Number(classId));
+      setClaseInteractiva(progreso);
+    } catch (error) {
+      console.error('Error al cargar progreso:', error);
+    }
+  };
+
+  const iniciarClase = async () => {
+    if (!claseInteractiva) {
+      // Cargar el progreso del estudiante si no está cargado
+      await cargarProgresoClase();
+    }
+    setShowClassModal(true);
+  };
+
+  const handleEnrollInClass = async () => {
+    if (!student || !classId) return;
+
+    setIsEnrolling(true);
+    try {
+      // Inscribir al estudiante en la clase
+      await apiService.inscribirEstudianteClase({
+        id_estudiante: student.id,
+        id_clase: Number(classId)
+      });
+      
+      // Inicializar el progreso del estudiante
+      await apiService.inicializarProgresoEstudiante(student.id, Number(classId));
+      
+      setIsAlreadyEnrolled(true);
+      
+      // Opcional: recargar datos de la clase
+      await loadClassData();
+      
+    } catch (error) {
+      console.error('Error al inscribirse en la clase:', error);
+      setError('Error al inscribirse en la clase. Por favor, inténtalo de nuevo.');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const handleContinueClass = async () => {
+    await iniciarClase();
+  };
+
+  const seleccionarContenido = async (contenido: ContenidoEstudianteResponseDTO) => {
+    if (!student || !classId) return;
+
+    try {
+      setLoadingContenido(true);
+      
+      // Usar directamente el contenido seleccionado
+      const contenidoCompleto = contenido;
+      
+      setContenidoActual(contenidoCompleto);
+
+      // Buscar el progreso correspondiente
+      const progreso = claseInteractiva?.progreso_estudiante.find(
+        p => p.id_contenido === contenidoCompleto.id
+      );
+      setProgresoActual(progreso || null);
+
+      // Solo actualizar estado a "En proceso" si está "No iniciado" y el usuario está viendo el contenido
+      if (progreso && progreso.estado === 'No iniciado') {
+        await apiService.actualizarEstadoProgreso(progreso.id, 'En proceso');
+        await cargarProgresoClase();
+        // Actualizar el progreso local también
+        setProgresoActual({ ...progreso, estado: 'En proceso' });
+      }
+
+      // Paginar contenido si existe
+      if (contenidoCompleto.contenido) {
+        const paginas = paginarContenido(contenidoCompleto.contenido);
+        setContenidoPaginado(paginas);
+        setPaginaActual(0);
+      }
+
+    } catch (error) {
+      console.error('Error al seleccionar contenido:', error);
+    } finally {
+      setLoadingContenido(false);
+    }
+  };
+
+  const paginarContenido = (contenido: string): string[] => {
+    // Divide el contenido en páginas según el tamaño de pantalla
+    const maxCaracteresPorPagina = 2000; // Ajustable según necesidades
+    const paginas: string[] = [];
+    
+    // Dividir por párrafos primero
+    const parrafos = contenido.split('\n\n');
+    let paginaActual = '';
+    
+    for (const parrafo of parrafos) {
+      if ((paginaActual + parrafo).length > maxCaracteresPorPagina && paginaActual.length > 0) {
+        paginas.push(paginaActual.trim());
+        paginaActual = parrafo + '\n\n';
+      } else {
+        paginaActual += parrafo + '\n\n';
+      }
+    }
+    
+    if (paginaActual.trim()) {
+      paginas.push(paginaActual.trim());
+    }
+    
+    return paginas.length > 0 ? paginas : [contenido];
+  };
+
+  const finalizarIndice = async () => {
+    if (!progresoActual) return;
+
+    try {
+      await apiService.actualizarEstadoProgreso(progresoActual.id, 'Finalizado');
+      await cargarProgresoClase();
+      
+      // Limpiar la vista del contenido actual
+      setContenidoActual(null);
+      setProgresoActual(null);
+      setContenidoPaginado([]);
+      setPaginaActual(0);
+    } catch (error) {
+      console.error('Error al finalizar índice:', error);
+    }
+  };
+
+  // Función para determinar el texto del botón según si es el último elemento
+  const obtenerTextoBotonFinalizar = (): string => {
+    if (!claseInteractiva || !contenidoActual) return 'Continuar';
+    
+    const indiceActual = claseInteractiva.contenidos_disponibles.findIndex(c => c.id === contenidoActual.id);
+    const esUltimo = indiceActual === claseInteractiva.contenidos_disponibles.length - 1;
+    
+    return esUltimo ? 'Finalizar' : 'Continuar';
+  };
+
+  // Función para determinar si se puede seleccionar un contenido
+  const puedeSeleccionarContenido = (contenido: ContenidoEstudianteResponseDTO): boolean => {
+    if (!claseInteractiva) return true;
+    
+    const progreso = claseInteractiva.progreso_estudiante.find(p => p.id_contenido === contenido.id);
+    return true; // Permitir seleccionar cualquier contenido por ahora
+  };
+
+  const getEstadoColor = (estado: EstadoContenidoType): string => {
+    switch (estado) {
+      case 'No iniciado':
+        return 'bg-gray-200 text-gray-700';
+      case 'En proceso':
+        return 'bg-yellow-200 text-yellow-800';
+      case 'Finalizado':
+        return 'bg-green-200 text-green-800';
+      default:
+        return 'bg-gray-200 text-gray-700';
+    }
+  };
+
+  // ========== FUNCIONES PARA NOTAS ==========
+
+  const cargarNotas = async () => {
+    if (!student) return;
+
+    try {
+      setLoadingNotas(true);
+      const notasData = await apiService.obtenerNotasEstudiante(student.id);
+      setNotas(notasData);
+    } catch (error) {
+      console.error('Error al cargar notas:', error);
+    } finally {
+      setLoadingNotas(false);
+    }
+  };
+
+  const crearNota = async () => {
+    if (!student || !nuevaNota.trim()) return;
+
+    try {
+      await apiService.crearNota(student.id, nuevaNota.trim());
+      setNuevaNota('');
+      await cargarNotas();
+    } catch (error) {
+      console.error('Error al crear nota:', error);
+    }
+  };
+
+  const editarNota = async (notaId: number) => {
+    if (!textoEditando.trim()) return;
+
+    try {
+      await apiService.actualizarNota(notaId, { notas: textoEditando.trim() });
+      setEditandoNota(null);
+      setTextoEditando('');
+      await cargarNotas();
+    } catch (error) {
+      console.error('Error al editar nota:', error);
+    }
+  };
+
+  const eliminarNota = async (notaId: number) => {
+    try {
+      await apiService.eliminarNota(notaId);
+      await cargarNotas();
+    } catch (error) {
+      console.error('Error al eliminar nota:', error);
+    }
+  };
+
+  // ========== FUNCIONES PARA FLASHCARDS Y QUIZ (simplificadas) ==========
+
+  const loadFlashcards = async () => {
+    if (!student || !classId) return;
+    
+    try {
+      setLoadingFlashcards(true);
+      const flashcardsData = await apiService.generarFlashcards(student.id, Number(classId));
+      setFlashcards(flashcardsData.flashcards || []);
+    } catch (error) {
+      console.error('Error loading flashcards:', error);
+    } finally {
+      setLoadingFlashcards(false);
+    }
+  };
+
+  const cargarPreguntas = async () => {
+    if (!classId) return;
+    
+    try {
+      setLoadingQuiz(true);
+      const preguntasData = await apiService.obtenerPreguntasClase(Number(classId));
+      if (preguntasData.length === 0) {
+        await apiService.generarPreguntasClase(Number(classId));
+        const nuevasPreguntas = await apiService.obtenerPreguntasClase(Number(classId));
+        setPreguntas(nuevasPreguntas);
+      } else {
+        setPreguntas(preguntasData);
+      }
+    } catch (error) {
+      console.error('Error al cargar preguntas:', error);
+    } finally {
+      setLoadingQuiz(false);
+    }
+  };
+
+  // Funciones simplificadas para quiz
+  const iniciarQuiz = () => {
+    setQuizIniciado(true);
+    setTiempoInicio(new Date());
+  };
+
+  const seleccionarRespuesta = (opcion: number) => {
+    setRespuestaSeleccionada(opcion);
+  };
+
+  // ========== FUNCIONES PARA CHATBOT Y DETALLES DE CLASE ==========
+
+  const cargarHistorialConversaciones = async () => {
+    if (!student || !classId) return;
+
+    try {
+      setLoadingHistorial(true);
+      const historial = await apiService.obtenerHistorialChat(student.id, Number(classId));
+      setHistorialConversaciones(historial);
+      
+      // Convertir el historial de la BD al formato del chat local
+      const mensajesFormateados = historial.map(conv => ({
+        id: conv.id.toString(),
+        type: conv.tipo_emisor === TipoEntidadEnum.ESTUDIANTE ? 'user' as const : 'bot' as const,
+        content: conv.mensaje,
+        timestamp: new Date(conv.created_at)
+      }));
+      
+      setChatMessages(mensajesFormateados);
+    } catch (error) {
+      console.error('Error al cargar historial de conversaciones:', error);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
+
+  const normalizePerfil = (perfil: string | undefined): PerfilCognitivoType => {
+    if (!perfil) return 'visual';
+    const normalized = perfil.toLowerCase();
+    const validProfiles: PerfilCognitivoType[] = ['visual', 'auditivo', 'lector', 'kinestesico'];
+    return validProfiles.includes(normalized as PerfilCognitivoType) 
+      ? normalized as PerfilCognitivoType 
+      : 'visual';
+  };
 
   const sendMessage = async () => {
     if (!currentMessage.trim() || !student || !classData) return;
@@ -66,90 +509,34 @@ export default function ClassDetailPage() {
     setIsTyping(true);
 
     try {
-      let botResponse = '';
+      const requestData: ChatGeneralRequestDTO = {
+        perfil_cognitivo: normalizePerfil(student.perfil_cognitivo),
+        perfil_personalidad: student.perfil_personalidad || 'Equilibrado',
+        nivel_conocimientos: 'basico',
+        id_clase: Number(classId),
+        historial_mensajes: chatMessages.map(msg => ({
+          tipo: msg.type,
+          contenido: msg.content
+        })),
+        mensaje_actual: currentMessage
+      };
+
+      const response = await apiService.chatGeneralPersonalizado(student.id, requestData);
       
-      switch (chatMode) {
-        case 'apoyo':
-          try {
-            const apoyoRequest: ApoyoPsicopedagogicoRequestDTO = {
-              perfil_cognitivo: normalizePerfil(student.perfil_cognitivo),
-              perfil_personalidad: student.perfil_personalidad || 'Estudiante motivado y participativo',
-              nivel_conocimientos: 'basico' as NivelConocimientosType,
-              id_clase: parseInt(classId as string),
-              mensaje_usuario: currentMessage,
-              problema_especifico: currentMessage
-            };
-            
-            const response = await apiService.generarApoyoPsicopedagogico(student.id, apoyoRequest);
-            botResponse = response.contenido_generado;
-          } catch (error) {
-            console.error('Error en apoyo psicopedagógico:', error);
-            botResponse = 'Lo siento, no pude generar el apoyo personalizado en este momento. ¿Podrías ser más específico sobre el problema que estás enfrentando?';
-          }
-          break;
-          
-        case 'plan':
-          try {
-            const response = await apiService.generarPlanEstudio(
-              student.id,
-              normalizePerfil(student.perfil_cognitivo),
-              student.perfil_personalidad || 'Estudiante motivado',
-              'basico',
-              parseInt(classId as string),
-              currentMessage,
-              currentMessage
-            );
-            botResponse = response.contenido_generado;
-          } catch (error) {
-            console.error('Error en plan de estudio:', error);
-            botResponse = 'No pude generar un plan de estudio personalizado ahora. Te sugiero revisar los materiales proporcionados y contactar a tu docente.';
-          }
-          break;
-          
-        case 'evaluacion':
-          try {
-            const response = await apiService.evaluarComprension(
-              student.id,
-              normalizePerfil(student.perfil_cognitivo),
-              student.perfil_personalidad || 'Estudiante motivado',
-              'basico',
-              parseInt(classId as string),
-              currentMessage,
-              currentMessage
-            );
-            botResponse = response.contenido_generado;
-          } catch (error) {
-            console.error('Error en evaluación de comprensión:', error);
-            botResponse = 'No pude evaluar tu comprensión en este momento. Te recomiendo practicar con los materiales disponibles.';
-          }
-          break;
-          
-        default:
-          // Respuesta general básica
-          botResponse = `Hola ${student.nombre}! Te ayudo con dudas sobre "${classData.nombre}". Puedo ofrecerte:
-          
-• **Apoyo personalizado**: Ayuda específica con problemas de aprendizaje
-• **Plan de estudio**: Estrategias personalizadas según tu estilo
-• **Evaluación**: Retroalimentación sobre tu comprensión
-
-¿En qué te gustaría que te ayude hoy?`;
-          break;
-      }
-
       const botMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot' as const,
-        content: botResponse,
+        content: response.contenido_generado,
         timestamp: new Date()
       };
 
       setChatMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error al enviar mensaje:', error);
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot' as const,
-        content: 'Lo siento, hubo un problema procesando tu mensaje. Por favor, intenta nuevamente.',
+        content: 'Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo.',
         timestamp: new Date()
       };
       setChatMessages(prev => [...prev, errorMessage]);
@@ -160,569 +547,353 @@ export default function ClassDetailPage() {
 
   const clearChat = () => {
     setChatMessages([]);
-    setChatMode('general');
+    setHistorialConversaciones([]);
   };
 
-  const normalizePerfil = (perfil: string | undefined): PerfilCognitivoType => {
-    if (!perfil) return 'visual';
-    const normalized = perfil.toLowerCase();
-    const validProfiles: PerfilCognitivoType[] = ['visual', 'auditivo', 'lector', 'kinestesico'];
-    return validProfiles.includes(normalized as PerfilCognitivoType) 
-      ? normalized as PerfilCognitivoType 
-      : 'visual';
-  };
-
-  const loadClassData = async () => {
+  const loadOriginalFiles = async () => {
     if (!classId) return;
     
     try {
-      setIsLoading(true);
-      const [classInfo, classContents] = await Promise.all([
-        apiService.getClase(parseInt(classId as string)),
-        apiService.getContenidosClase(parseInt(classId as string))
-      ]);
-      
-      setClassData(classInfo);
-      setContents(classContents);
+      setLoadingFiles(true);
+      const response = await apiService.getArchivos(Number(classId), 'Subido');
+      setOriginalFiles(response.archivos);
     } catch (error) {
-      console.error('Error loading class data:', error);
-      setError('Error al cargar los datos de la clase');
+      console.error('Error loading files:', error);
     } finally {
-      setIsLoading(false);
+      setLoadingFiles(false);
     }
+  };
+
+  const handleDownloadFile = async (filename: string) => {
+    if (!classId) return;
+    
+    try {
+      await apiService.downloadFileFromClass(Number(classId), filename);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   if (!student) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">Cargando...</div>
       </div>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-[#49739c]">Cargando clase...</span>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">Cargando datos de la clase...</div>
       </div>
     );
   }
 
   if (error || !classData) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <p className="text-red-600">{error || 'Clase no encontrada'}</p>
-          <Link href="/student/classes" className="mt-3 text-[#0d80f2] hover:underline block">
-            ← Volver a Mis Clases
-          </Link>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center text-red-600">
+          <p>{error || 'Error al cargar la clase'}</p>
+          <button onClick={() => router.back()} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Volver
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden"
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
       style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}
     >
-      <div className="layout-container flex h-full grow flex-col">
+      <div className="flex h-full flex-col">
         {/* Header */}
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-          <div className="flex items-center gap-4 text-[#0d141c]">
-            <Link href="/student/classes" className="text-[#0d80f2] hover:underline">
-              ← Mis Clases
+        <header className="backdrop-blur-md bg-white/70 border-b border-white/20 px-6 py-4 shadow-sm">
+          <div className="flex items-center gap-4 text-gray-800">
+            <Link href="/student/classes" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd"/>
+              </svg>
+              Mis Clases
             </Link>
-            <div className="size-6">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_6_330)">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                    fill="currentColor"
-                  />
-                </g>
-                <defs>
-                  <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"/></clipPath>
-                </defs>
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <h1 className="text-[#0d141c] text-xl font-bold leading-tight tracking-[-0.015em]">
+            <h1 className="text-gray-800 text-xl font-bold">
               {classData.nombre || 'Detalle de Clase'}
             </h1>
           </div>
         </header>
 
         {/* Main Content */}
-        <div className="flex flex-1 px-4 py-8 relative">
-          <div className="w-full max-w-6xl mx-auto">
+        <div className="flex-1 px-6 py-8">
+          <div className="max-w-7xl mx-auto space-y-8">
             {/* Class Header */}
-            <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] p-8 mb-6">
+            <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border border-white/20 p-8">
               <div className="mb-6">
-                <h2 className="text-[#0d141c] text-3xl font-bold mb-3">
-                  {classData.nombre || 'Clase sin nombre'}
-                </h2>
-                <p className="text-[#49739c] text-lg mb-4">
-                  {classData.tema || 'Sin tema especificado'}
-                </p>
-                
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-[#49739c] font-medium">Área:</span>
-                    <span className="ml-2 text-[#0d141c]">{classData.area || 'No especificada'}</span>
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                   </div>
-                  <div>
-                    <span className="text-[#49739c] font-medium">Nivel:</span>
-                    <span className="ml-2 text-[#0d141c]">{classData.nivel_educativo || 'No especificado'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[#49739c] font-medium">Duración:</span>
-                    <span className="ml-2 text-[#0d141c]">
-                      {classData.duracion_estimada ? `${classData.duracion_estimada} min` : 'No especificada'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#49739c] font-medium">Modalidad:</span>
-                    <span className="ml-2 text-[#0d141c]">{classData.modalidad || 'No especificada'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {classData.objetivos_aprendizaje && (
-                <div className="border-t border-[#e7edf4] pt-6">
-                  <h3 className="text-[#0d141c] font-semibold mb-2">Objetivos de Aprendizaje</h3>
-                  <p className="text-[#49739c]">{classData.objetivos_aprendizaje}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Tabs for materials */}
-            <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] p-8">
-              <div className="mb-6">
-                <h3 className="text-[#0d141c] text-2xl font-bold mb-2">Materiales de Clase</h3>
-                <p className="text-[#49739c]">Accede a los recursos generados por tu docente</p>
-              </div>
-              <div className="flex border-b border-[#e7edf4] mb-6">
-                <button
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    !showCustomTab ? 'border-[#0d80f2] text-[#0d80f2]' : 'border-transparent text-[#49739c] hover:text-[#0d141c]'
-                  }`}
-                  onClick={() => setShowCustomTab(false)}
-                >
-                  Material proporcionado
-                </button>
-                <button
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    showCustomTab ? 'border-[#0d80f2] text-[#0d80f2]' : 'border-transparent text-[#49739c] hover:text-[#0d141c]'
-                  }`}
-                  onClick={() => setShowCustomTab(true)}
-                >
-                  Material personalizado
-                </button>
-              </div>
-              {/* Tab content */}
-              {!showCustomTab ? (
-                // Material proporcionado: solo mostrar recursos de la pestaña "Contenido de Clase" del docente
-                <>
-                  {/* Presentación PowerPoint */}
-                  <div className="mb-8">
-                    <h4 className="text-[#0d141c] text-lg font-semibold mb-4">Presentación PowerPoint</h4>
-                    {contents.filter(c => c.tipo_recurso_generado === 'Presentación PowerPoint').length > 0 ? (
-                      <div className="space-y-4">
-                        {contents.filter(c => c.tipo_recurso_generado === 'Presentación PowerPoint').map((contenido, idx) => {
-                          const lines = contenido.contenido.split('\n');
-                          const embedUrlLine = lines.find(line => line.includes('URL Embed:'));
-                          const downloadUrlLine = lines.find(line => line.includes('ID SlidesGPT:'));
-                          const embedUrl = embedUrlLine ? embedUrlLine.split('URL Embed: ')[1] : null;
-                          const slidesId = downloadUrlLine ? downloadUrlLine.split('ID SlidesGPT: ')[1] : null;
-                          return (
-                            <div key={contenido.id} className="bg-slate-50 rounded-lg border border-[#cedbe8] p-6">
-                              <div className="flex justify-between items-start mb-4">
-                                <div>
-                                  <h5 className="text-[#0d141c] text-base font-semibold">Presentación PowerPoint</h5>
-                                  <p className="text-[#49739c] text-xs">Generada el {new Date(contenido.created_at).toLocaleDateString('es-ES')}</p>
-                                </div>
-                                {slidesId && (
-                                  <button
-                                    onClick={() => window.open(`https://slidesgpt.com/presentation/${slidesId}`, '_blank')}
-                                    className="bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-green-700 flex items-center gap-2"
-                                  >
-                                    Descargar
-                                  </button>
-                                )}
-                              </div>
-                              {embedUrl ? (
-                                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                                  <iframe
-                                    src={embedUrl}
-                                    className="w-full h-full"
-                                    frameBorder="0"
-                                    allowFullScreen
-                                    title="Presentación PowerPoint"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                                  <span className="text-gray-500 text-xs">Vista previa no disponible</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center text-[#49739c] py-4">No hay presentación generada</div>
-                    )}
-                  </div>
-                  {/* Recursos Educativos Web */}
-                  <div className="mb-8">
-                    <h4 className="text-[#0d141c] text-lg font-semibold mb-4">Recursos Educativos Web</h4>
-                    {contents.filter(c => c.tipo_recurso_generado === 'Recursos Educativos Web').length > 0 ? (
-                      <div className="space-y-4">
-                        {contents.filter(c => c.tipo_recurso_generado === 'Recursos Educativos Web').map((contenido, idx) => (
-                          <div key={contenido.id} className="bg-slate-50 rounded-lg border border-[#cedbe8] p-6">
-                            <div className="flex justify-between items-start mb-4">
-                              <div>
-                                <h5 className="text-[#0d141c] text-base font-semibold">Recursos Educativos Web</h5>
-                                <p className="text-[#49739c] text-xs">Encontrados el {new Date(contenido.created_at).toLocaleDateString('es-ES')}</p>
-                              </div>
-                            </div>
-                            <div className="prose max-w-none">
-                              <div className="whitespace-pre-line text-[#0d141c] text-xs leading-relaxed max-h-60 overflow-y-auto bg-white p-2 rounded-lg">
-                                {contenido.contenido}
-                              </div>
-                            </div>
+                  <div className="flex-1">
+                    <h2 className="text-gray-800 text-3xl font-bold mb-2">
+                      {classData.nombre || 'Clase sin nombre'}
+                    </h2>
+                    <p className="text-gray-600 text-lg leading-relaxed mb-4">
+                      {classData.tema || 'Sin descripción disponible'}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="backdrop-blur-sm bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl p-4 border border-blue-200/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/>
+                            </svg>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-[#49739c] py-4">No hay recursos web encontrados</div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                // Material personalizado: funcionalidades del agente psicopedagógico
-                <div className="space-y-6">
-                  <div className="text-center mb-8">
-                    <h4 className="text-[#0d141c] text-xl font-bold mb-2">Material Personalizado</h4>
-                    <p className="text-[#49739c]">Recursos generados específicamente para tu estilo de aprendizaje</p>
-                  </div>
-
-                  {/* Tarjetas de funcionalidades */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Apoyo Psicopedagógico */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="text-blue-600" viewBox="0 0 256 256">
-                            <path d="M225.86,102.82c-3.77-3.94-7.67-8-9.14-11.57-1.36-3.27-1.44-8.69-1.52-13.94-.15-9.76-.31-20.82-8-28.51s-18.75-7.85-28.51-8c-5.25-.08-10.67-.16-13.94-1.52-3.56-1.47-7.63-5.37-11.57-9.14C146.28,23.51,138.44,16,128,16s-18.27,7.51-25.18,14.14c-3.94,3.77-8,7.67-11.57,9.14C88,40.64,82.56,40.72,77.31,40.8c-9.76.15-20.82.31-28.51,8S41,67.55,40.8,77.31c-.08,5.25-.16,10.67-1.52,13.94-1.47,3.56-5.37,7.63-9.14,11.57C23.51,109.72,16,117.56,16,128s7.51,18.27,14.14,25.18c3.77,3.94,7.67,8,9.14,11.57,1.36,3.27,1.44,8.69,1.52,13.94.15,9.76.31,20.82,8,28.51s18.75,7.85,28.51,8c5.25.08,10.67.16,13.94,1.52,3.56,1.47,7.63,5.37,11.57,9.14C109.72,232.49,117.56,240,128,240s18.27-7.51,25.18-14.14c3.94-3.77,8-7.67,11.57-9.14,3.27-1.36,8.69-1.44,13.94-1.52,9.76-.15,20.82-.31,28.51-8s7.85-18.75,8-28.51c.08-5.25.16-10.67,1.52-13.94,1.47-3.56,5.37-7.63,9.14-11.57C232.49,146.28,240,138.44,240,128S232.49,109.73,225.86,102.82Zm-52.2,6.84-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <h5 className="font-semibold text-[#0d141c]">Apoyo Personalizado</h5>
-                          <p className="text-xs text-[#49739c]">Ayuda específica para tus dificultades</p>
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Área</p>
+                            <p className="text-sm font-semibold text-gray-700">{classData.area || 'No especificada'}</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-sm text-[#49739c] mb-4">
-                        Obtén apoyo psicopedagógico personalizado basado en tu perfil de aprendizaje y las dificultades específicas que encuentres.
-                      </p>
-                      <button
-                        onClick={() => {
-                          setChatMode('apoyo');
-                          setShowChatbot(true);
-                        }}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors"
-                      >
-                        Solicitar Apoyo
-                      </button>
-                    </div>
-
-                    {/* Plan de Estudio */}
-                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="text-green-600" viewBox="0 0 256 256">
-                            <path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40ZM40,56H216V88H40ZM40,200V104H216v96ZM64,128a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H72A8,8,0,0,1,64,128Zm0,32a8,8,0,0,1,8-8h16a8,8,0,0,1,0,16H72A8,8,0,0,1,64,160Zm64-32a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H136A8,8,0,0,1,128,128Zm0,32a8,8,0,0,1,8-8h48a8,8,0,0,1,0,16H136A8,8,0,0,1,128,160Z"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <h5 className="font-semibold text-[#0d141c]">Plan de Estudio</h5>
-                          <p className="text-xs text-[#49739c]">Estrategias personalizadas</p>
+                      
+                      <div className="backdrop-blur-sm bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-xl p-4 border border-emerald-200/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Nivel</p>
+                            <p className="text-sm font-semibold text-gray-700">{classData.nivel_educativo || 'No especificado'}</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-sm text-[#49739c] mb-4">
-                        Genera un plan de estudio personalizado adaptado a tu estilo de aprendizaje y objetivos específicos.
-                      </p>
-                      <button
-                        onClick={() => {
-                          setChatMode('plan');
-                          setShowChatbot(true);
-                        }}
-                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-green-700 transition-colors"
-                      >
-                        Crear Plan
-                      </button>
-                    </div>
-
-                    {/* Evaluación de Comprensión */}
-                    <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="text-purple-600" viewBox="0 0 256 256">
-                            <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <h5 className="font-semibold text-[#0d141c]">Evaluación</h5>
-                          <p className="text-xs text-[#49739c]">Retroalimentación personalizada</p>
+                      
+                      <div className="backdrop-blur-sm bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-4 border border-purple-200/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Duración</p>
+                            <p className="text-sm font-semibold text-gray-700">{classData.duracion_estimada || 'No especificada'} minutos</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-sm text-[#49739c] mb-4">
-                        Evalúa tu comprensión del tema y recibe retroalimentación personalizada para mejorar tu aprendizaje.
-                      </p>
-                      <button
-                        onClick={() => {
-                          setChatMode('evaluacion');
-                          setShowChatbot(true);
-                        }}
-                        className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-purple-700 transition-colors"
-                      >
-                        Evaluar Comprensión
-                      </button>
-                    </div>
-
-                    {/* Asistente General */}
-                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="text-orange-600" viewBox="0 0 256 256">
-                            <path d="M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128ZM128,72a12,12,0,1,0-12-12A12,12,0,0,0,128,72Zm0,112a12,12,0,1,0,12,12A12,12,0,0,0,128,184Zm94.92,2.92-35.36-35.36a60,60,0,0,0,0-63.12l35.36-35.36a8,8,0,0,0-11.31-11.31L176.25,77.14a60,60,0,0,0-63.12,0L77.77,41.77A8,8,0,0,0,66.46,53.08L101.82,88.44a60,60,0,0,0,0,63.12L66.46,186.92a8,8,0,0,0,11.31,11.31l35.36-35.36a60,60,0,0,0,63.12,0l35.36,35.36a8,8,0,0,0,11.31-11.31ZM128,184a56,56,0,1,1,56-56A56.06,56.06,0,0,1,128,184Z"/>
-                          </svg>
-                        </div>
-                        <div>
-                          <h5 className="font-semibold text-[#0d141c]">Asistente General</h5>
-                          <p className="text-xs text-[#49739c]">Preguntas y dudas generales</p>
+                      
+                      <div className="backdrop-blur-sm bg-gradient-to-r from-orange-500/10 to-red-500/10 rounded-xl p-4 border border-orange-200/30">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-600 rounded-lg flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Modalidad</p>
+                            <p className="text-sm font-semibold text-gray-700">{classData.modalidad || 'No especificada'}</p>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-sm text-[#49739c] mb-4">
-                        Resuelve dudas generales sobre la clase, conceptos o cualquier pregunta relacionada con el contenido.
-                      </p>
-                      <button
-                        onClick={() => {
-                          setChatMode('general');
-                          setShowChatbot(true);
-                        }}
-                        className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-orange-700 transition-colors"
-                      >
-                        Hacer Pregunta
-                      </button>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Información adicional */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                    <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 text-blue-600 mt-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
-                          <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
+
+
+              {isAlreadyEnrolled && (
+                <div className="mt-6">
+                  <button
+                    onClick={handleContinueClass}
+                    className="group relative px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 hover:scale-105 border border-white/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd"/>
+                      </svg>
+                      <span>Continuar Clase</span>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd"/>
                         </svg>
                       </div>
-                      <div>
-                        <p className="text-sm text-blue-800 font-medium mb-1">Personalización Inteligente</p>
-                        <p className="text-xs text-blue-700">
-                          Todas estas herramientas utilizan tu perfil de aprendizaje ({normalizePerfil(student?.perfil_cognitivo)}) 
-                          para ofrecerte una experiencia educativa personalizada y adaptada a tus necesidades específicas.
-                        </p>
-                      </div>
                     </div>
-                  </div>
+                  </button>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Chatbot Button */}
-          <div className="fixed bottom-6 right-6">
-            <button
-              onClick={() => setShowChatbot(true)}
-              className="bg-[#0d80f2] hover:bg-blue-600 text-white rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110"
-              title="Abrir asistente virtual"
-            >
-              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-                {/* Friendly assistant avatar */}
-                <svg
-                  width="32"
-                  height="32"
-                  viewBox="0 0 32 32"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle cx="16" cy="16" r="14" fill="#0d80f2"/>
-                  <circle cx="12" cy="13" r="2" fill="white"/>
-                  <circle cx="20" cy="13" r="2" fill="white"/>
-                  <path
-                    d="M10 20c0 3.314 2.686 6 6 6s6-2.686 6-6"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
-            </button>
-          </div>
+      {/* Tabs */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { id: 'contenido-clase', name: 'Contenido de Clase', icon: '📚' },
+              { id: 'resumenes-diagramas', name: 'Resúmenes y Diagramas', icon: '📊' },
+              { id: 'evaluacion', name: 'Evaluación', icon: '📝' },
+              { id: 'notas', name: 'Apuntes', icon: '📔' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                {tab.name}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-          {/* Chatbot Modal */}
-          {showChatbot && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl h-[600px] flex flex-col">
-                <div className="flex items-center justify-between p-4 border-b border-[#e7edf4]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#0d80f2] flex items-center justify-center">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 32 32"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle cx="16" cy="16" r="14" fill="white"/>
-                        <circle cx="12" cy="13" r="1.5" fill="#0d80f2"/>
-                        <circle cx="20" cy="13" r="1.5" fill="#0d80f2"/>
-                        <path
-                          d="M10 18c0 2.5 2.5 4.5 6 4.5s6-2 6-4.5"
-                          stroke="#0d80f2"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-[#0d141c] font-semibold">Asistente Virtual</h3>
-                      <p className="text-[#49739c] text-xs">¡Estoy aquí para ayudarte con {classData?.nombre}!</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={clearChat}
-                      className="text-[#49739c] hover:text-[#0d141c] p-1 text-xs"
-                      title="Limpiar chat"
-                    >
-                      Limpiar
-                    </button>
-                    <button
-                      onClick={() => setShowChatbot(false)}
-                      className="text-[#49739c] hover:text-[#0d141c] p-1"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Modo de chat */}
-                <div className="p-3 border-b border-[#e7edf4] bg-gray-50">
-                  <div className="flex gap-2 text-xs">
-                    <button
-                      onClick={() => setChatMode('general')}
-                      className={`px-2 py-1 rounded ${chatMode === 'general' ? 'bg-[#0d80f2] text-white' : 'bg-gray-200 text-gray-700'}`}
-                    >
-                      General
-                    </button>
-                    <button
-                      onClick={() => setChatMode('apoyo')}
-                      className={`px-2 py-1 rounded ${chatMode === 'apoyo' ? 'bg-[#0d80f2] text-white' : 'bg-gray-200 text-gray-700'}`}
-                    >
-                      Apoyo
-                    </button>
-                    <button
-                      onClick={() => setChatMode('plan')}
-                      className={`px-2 py-1 rounded ${chatMode === 'plan' ? 'bg-[#0d80f2] text-white' : 'bg-gray-200 text-gray-700'}`}
-                    >
-                      Plan de Estudio
-                    </button>
-                    <button
-                      onClick={() => setChatMode('evaluacion')}
-                      className={`px-2 py-1 rounded ${chatMode === 'evaluacion' ? 'bg-[#0d80f2] text-white' : 'bg-gray-200 text-gray-700'}`}
-                    >
-                      Evaluación
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Mensajes del chat */}
-                <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                  {chatMessages.length === 0 && (
-                    <div className="text-center text-[#49739c] text-sm py-8">
-                      <div className="mb-3">👋</div>
-                      <p>¡Hola {student?.nombre}! Soy tu asistente virtual.</p>
-                      <p className="mt-2">Selecciona un modo arriba y escribe tu pregunta.</p>
-                    </div>
-                  )}
-                  
-                  {chatMessages.map((message) => (
-                    <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                        message.type === 'user' 
-                          ? 'bg-[#0d80f2] text-white' 
-                          : 'bg-gray-100 text-[#0d141c]'
-                      }`}>
-                        <div className="whitespace-pre-wrap">{message.content}</div>
-                        <div className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {isTyping && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 text-[#0d141c] p-3 rounded-lg text-sm">
-                        <div className="flex items-center gap-1">
-                          <span>Escribiendo</span>
-                          <div className="flex gap-1">
-                            <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce"></div>
-                            <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                            <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Input del chat */}
-                <div className="p-4 border-t border-[#e7edf4]">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder={`Escribe tu ${chatMode === 'general' ? 'pregunta' : chatMode}...`}
-                      className="flex-1 px-3 py-2 border border-[#e7edf4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d80f2]"
-                      value={currentMessage}
-                      onChange={(e) => setCurrentMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                      disabled={isTyping}
-                    />
-                    <button
-                      onClick={sendMessage}
-                      disabled={!currentMessage.trim() || isTyping}
-                      className="bg-[#0d80f2] text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Enviar
-                    </button>
-                  </div>
-                  <div className="text-xs text-[#49739c] mt-1">
-                    Modo: {chatMode === 'general' ? 'Preguntas generales' : 
-                          chatMode === 'apoyo' ? 'Apoyo psicopedagógico personalizado' :
-                          chatMode === 'plan' ? 'Generación de plan de estudio' :
-                          'Evaluación de comprensión'}
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* Tab Content */}
+        <div className="mt-6">
+          {/* Contenido de Clase */}
+          {activeTab === 'contenido-clase' && (
+            <ContenidoClaseTab
+              claseInteractiva={claseInteractiva}
+              loadingContenido={loadingContenido}
+              iniciarClase={iniciarClase}
+            />
           )}
+
+
+          {/* Resúmenes y Diagramas */}
+          {activeTab === 'resumenes-diagramas' && (
+            <ResumenesDiagramasTab />
+          )}
+
+          {/* Evaluación */}
+          {activeTab === 'evaluacion' && (
+            <EvaluacionTab
+              flashcards={flashcards}
+              loadingFlashcards={loadingFlashcards}
+              currentCardIndex={currentCardIndex}
+              setCurrentCardIndex={setCurrentCardIndex}
+              showAnswer={showAnswer}
+              setShowAnswer={setShowAnswer}
+              studyMode={studyMode}
+              setStudyMode={setStudyMode}
+              loadFlashcards={loadFlashcards}
+              preguntas={preguntas}
+              loadingQuiz={loadingQuiz}
+              quizIniciado={quizIniciado}
+              preguntaActual={preguntaActual}
+              respuestasUsuario={respuestasUsuario}
+              respuestaSeleccionada={respuestaSeleccionada}
+              mostrarRetroalimentacion={mostrarRetroalimentacion}
+              quizTerminado={quizTerminado}
+              resultadoQuiz={resultadoQuiz}
+              tiempoInicio={tiempoInicio}
+              cargarPreguntas={cargarPreguntas}
+              iniciarQuiz={iniciarQuiz}
+              seleccionarRespuesta={seleccionarRespuesta}
+            />
+          )}
+
+          {/* Notas */}
+          {activeTab === 'notas' && (
+            <NotasTab
+              notas={notas}
+              nuevaNota={nuevaNota}
+              setNuevaNota={setNuevaNota}
+              editandoNota={editandoNota}
+              setEditandoNota={setEditandoNota}
+              textoEditando={textoEditando}
+              setTextoEditando={setTextoEditando}
+              loadingNotas={loadingNotas}
+              crearNota={crearNota}
+              editarNota={editarNota}
+              eliminarNota={eliminarNota}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Modal de Clase Interactiva */}
+      <ClaseInteractivaModal
+        showClassModal={showClassModal}
+        setShowClassModal={setShowClassModal}
+        claseInteractiva={claseInteractiva}
+        contenidoActual={contenidoActual}
+        setContenidoActual={setContenidoActual}
+        progresoActual={progresoActual}
+        setProgresoActual={setProgresoActual}
+        contenidoPaginado={contenidoPaginado}
+        setContenidoPaginado={setContenidoPaginado}
+        paginaActual={paginaActual}
+        setPaginaActual={setPaginaActual}
+        loadingContenido={loadingContenido}
+        seleccionarContenido={seleccionarContenido}
+        finalizarIndice={finalizarIndice}
+        obtenerTextoBotonFinalizar={obtenerTextoBotonFinalizar}
+        getEstadoColor={getEstadoColor}
+      />
+
+      {/* Chatbot Button */}
+      <div className="fixed bottom-8 right-8 z-40">
+        <button
+          onClick={() => setShowChatbot(true)}
+          className="group backdrop-blur-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl p-2 shadow-xl transition-all duration-300 hover:scale-105 border border-white/20"
+          title={`Hablar con ${nombreDocente}`}
+        >
+          <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
+            <img 
+              src={fotoCaricaturaDocente} 
+              alt={`Foto de ${nombreDocente}`}
+              className="w-full h-full object-cover rounded-lg"
+              onError={(e) => {
+                e.currentTarget.src = 'http://localhost:8000/public/images/caric.jpeg';
+              }}
+            />
+          </div>
+          <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+          </div>
+        </button>
+      </div>
+
+      {/* Chatbot Modal */}
+      <ChatModal
+        showChatbot={showChatbot}
+        setShowChatbot={setShowChatbot}
+        student={student!}
+        classData={classData}
+        classId={classId as string}
+        fotoCaricaturaDocente={fotoCaricaturaDocente}
+        nombreDocente={nombreDocente}
+        chatMessages={chatMessages}
+        setChatMessages={setChatMessages}
+        currentMessage={currentMessage}
+        setCurrentMessage={setCurrentMessage}
+        isTyping={isTyping}
+        setIsTyping={setIsTyping}
+        historialConversaciones={historialConversaciones}
+        setHistorialConversaciones={setHistorialConversaciones}
+        loadingHistorial={loadingHistorial}
+        setLoadingHistorial={setLoadingHistorial}
+      />
+          </div>
         </div>
       </div>
     </div>

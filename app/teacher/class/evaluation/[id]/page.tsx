@@ -112,18 +112,32 @@ export default function ClassEvaluationPage() {
 
   if (loading) {
     return (
-      <div className="relative flex size-full min-h-screen flex-col bg-slate-50">
-        <div className="layout-container flex h-full grow flex-col">
-          <div className="px-40 flex flex-1 justify-center py-5">
-            <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
-              <div className="flex items-center justify-center flex-1">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#0d80f2] mx-auto mb-8"></div>
-                  <h2 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-4">Cargando evaluación</h2>
-                  <p className="text-[#49739c] text-base">Obteniendo las preguntas...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="backdrop-blur-md bg-white/70 border-b border-white/20 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
                 </div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  LearningForLive
+                </h1>
               </div>
             </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
+          <div className="backdrop-blur-md bg-white/80 border border-white/20 rounded-3xl p-12 shadow-2xl text-center max-w-md">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-indigo-400 rounded-full animate-spin mx-auto" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">Cargando evaluación</h2>
+            <p className="text-gray-600">Obteniendo las preguntas...</p>
           </div>
         </div>
       </div>
@@ -133,231 +147,255 @@ export default function ClassEvaluationPage() {
   const score = submitted ? calculateScore() : null;
 
   return (
-    <div 
-      className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden"
-      style={{
-        fontFamily: 'Inter, "Noto Sans", sans-serif',
-      }}
-    >
-      <div className="layout-container flex h-full grow flex-col">
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-          <div className="flex items-center gap-4 text-[#0d141c]">
-            <div className="size-4">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_6_330)">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                    fill="currentColor"
-                  ></path>
-                </g>
-                <defs>
-                  <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"></rect></clipPath>
-                </defs>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header */}
+      <div className="backdrop-blur-md bg-white/70 border-b border-white/20 shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                LearningForLive
+              </h1>
+            </div>
+            <button 
+              onClick={() => router.push(`/teacher/class/${id}`)}
+              className="backdrop-blur-md bg-white/60 hover:bg-white/80 border border-white/30 px-4 py-2 rounded-xl text-gray-700 hover:text-gray-900 transition-all duration-200 flex items-center gap-2 shadow-lg"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-            </div>
-            <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
+              Volver a la Clase
+            </button>
           </div>
-          <div className="flex flex-1 justify-end gap-8">
-            <div className="flex items-center gap-9">
-              <button 
-                className="text-[#0d141c] text-sm font-medium leading-normal"
-                onClick={() => router.push(`/teacher/class/${id}`)}
-              >
-                ← Volver a la Clase
-              </button>
-            </div>
-          </div>
-        </header>
+        </div>
+      </div>
 
-        <div className="px-40 flex flex-1 justify-center py-5">
-          <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Header */}
+        <div className="backdrop-blur-md bg-white/80 border border-white/20 rounded-3xl p-8 shadow-2xl mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+                Evaluación de Clase
+              </h1>
+              <div className="flex items-center gap-6 text-gray-600">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">{preguntas.length} preguntas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${submitted ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
+                  <span className="font-medium">{submitted ? 'Completado' : 'En progreso'}</span>
+                </div>
+              </div>
+            </div>
             
-            {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-[#0d141c] text-[32px] font-bold leading-tight">
-                  Evaluación de Clase
-                </h1>
-                <p className="text-[#49739c] text-base mt-2">
-                  {preguntas.length} preguntas • {submitted ? 'Completado' : 'En progreso'}
-                </p>
-              </div>
-              
-              {submitted && score && (
-                <div className="bg-white rounded-lg border border-[#cedbe8] p-4 text-center">
-                  <div className={`text-2xl font-bold ${score.percentage >= 70 ? 'text-green-600' : score.percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {score.percentage}%
-                  </div>
-                  <div className="text-sm text-[#49739c]">
-                    {score.correct} de {score.total} correctas
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Questions */}
-            <div className="space-y-8">
-              {preguntas.map((pregunta, questionIndex) => (
-                <div key={pregunta.id} className="bg-white rounded-lg border border-[#cedbe8] p-6">
-                  <div className="mb-6">
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-[#0d80f2] text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                        {questionIndex + 1}
-                      </div>
-                      <h3 className="text-[#0d141c] text-lg font-semibold leading-tight">
-                        {pregunta.pregunta}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    {[1, 2, 3, 4].map((alternativeIndex) => {
-                      const alternativeText = getAlternativeText(pregunta, alternativeIndex);
-                      const isSelected = selectedAnswers[questionIndex] === alternativeIndex;
-                      const isCorrect = pregunta.alternativa_correcta === alternativeIndex;
-                      const showFeedback = submitted && isSelected;
-                      
-                      let buttonClass = "flex items-center gap-3 w-full p-4 rounded-lg border text-left transition-all ";
-                      
-                      if (submitted) {
-                        if (isCorrect) {
-                          buttonClass += "border-green-500 bg-green-50 text-green-800";
-                        } else if (isSelected && !isCorrect) {
-                          buttonClass += "border-red-500 bg-red-50 text-red-800";
-                        } else {
-                          buttonClass += "border-[#cedbe8] bg-gray-50 text-[#49739c]";
-                        }
-                      } else {
-                        if (isSelected) {
-                          buttonClass += "border-[#0d80f2] bg-blue-50 text-[#0d80f2]";
-                        } else {
-                          buttonClass += "border-[#cedbe8] bg-white text-[#0d141c] hover:border-[#0d80f2] hover:bg-blue-50";
-                        }
-                      }
-
-                      return (
-                        <div key={alternativeIndex}>
-                          <button
-                            onClick={() => handleAnswerSelect(questionIndex, alternativeIndex)}
-                            className={buttonClass}
-                            disabled={submitted}
-                          >
-                            <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${
-                              isSelected 
-                                ? (submitted && isCorrect ? 'border-green-500 bg-green-500' : submitted && !isCorrect ? 'border-red-500 bg-red-500' : 'border-[#0d80f2] bg-[#0d80f2]')
-                                : submitted && isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-300'
-                            }`}>
-                              {(isSelected || (submitted && isCorrect)) && (
-                                <svg
-                                  className="w-3 h-3 text-white m-auto"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <span className="font-medium">{String.fromCharCode(64 + alternativeIndex)}.</span>
-                            <span>{alternativeText}</span>
-                          </button>
-                          
-                          {showFeedback && (
-                            <div className={`mt-2 p-3 rounded-lg text-sm ${
-                              isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              <div className="flex items-start gap-2">
-                                <svg
-                                  className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isCorrect ? 'text-green-600' : 'text-red-600'}`}
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  {isCorrect ? (
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                      clipRule="evenodd"
-                                    />
-                                  ) : (
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                      clipRule="evenodd"
-                                    />
-                                  )}
-                                </svg>
-                                <span>{getRetroalimentacion(pregunta, alternativeIndex)}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Submit Button */}
-            {!submitted && (
-              <div className="flex justify-center mt-8">
-                <button
-                  onClick={handleSubmit}
-                  disabled={Object.keys(selectedAnswers).length !== preguntas.length}
-                  className="bg-[#0d80f2] text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Enviar Respuestas
-                </button>
-              </div>
-            )}
-
-            {/* Results Summary */}
             {submitted && score && (
-              <div className="mt-8 bg-white rounded-lg border border-[#cedbe8] p-6">
-                <h3 className="text-[#0d141c] text-xl font-semibold mb-4">Resumen de Resultados</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-2xl font-bold text-[#0d141c]">{score.total}</div>
-                    <div className="text-sm text-[#49739c]">Total de preguntas</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{score.correct}</div>
-                    <div className="text-sm text-green-600">Respuestas correctas</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-[#0d80f2]">{score.percentage}%</div>
-                    <div className="text-sm text-[#0d80f2]">Puntuación final</div>
-                  </div>
+              <div className="backdrop-blur-md bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200 rounded-2xl p-6 text-center shadow-lg">
+                <div className={`text-3xl font-bold mb-2 ${
+                  score.percentage >= 70 
+                    ? 'text-green-600' 
+                    : score.percentage >= 50 
+                      ? 'text-yellow-600' 
+                      : 'text-red-600'
+                }`}>
+                  {score.percentage}%
                 </div>
-
-                <div className="flex justify-center gap-4">
-                  <button
-                    onClick={() => {
-                      setSelectedAnswers({});
-                      setSubmitted(false);
-                      setShowResults(false);
-                    }}
-                    className="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700"
-                  >
-                    Reintentar
-                  </button>
-                  <button
-                    onClick={() => router.push(`/teacher/class/${id}`)}
-                    className="bg-[#0d80f2] text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-600"
-                  >
-                    Volver a la Clase
-                  </button>
+                <div className="text-sm text-gray-600 font-medium">
+                  {score.correct} de {score.total} correctas
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* Questions */}
+        <div className="space-y-6">
+          {preguntas.map((pregunta, questionIndex) => (
+            <div key={pregunta.id} className="backdrop-blur-md bg-white/80 border border-white/20 rounded-3xl p-8 shadow-2xl">
+              <div className="mb-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center text-sm font-bold shadow-lg">
+                    {questionIndex + 1}
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-800 leading-relaxed">
+                    {pregunta.pregunta}
+                  </h3>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {[1, 2, 3, 4].map((alternativeIndex) => {
+                  const alternativeText = getAlternativeText(pregunta, alternativeIndex);
+                  const isSelected = selectedAnswers[questionIndex] === alternativeIndex;
+                  const isCorrect = pregunta.alternativa_correcta === alternativeIndex;
+                  const showFeedback = submitted && isSelected;
+                  
+                  let buttonClass = "flex items-center gap-4 w-full p-4 rounded-2xl text-left transition-all duration-200 ";
+                  
+                  if (submitted) {
+                    if (isCorrect) {
+                      buttonClass += "border-2 border-green-400 bg-gradient-to-r from-green-50/90 to-emerald-50/90 text-green-800 shadow-lg";
+                    } else if (isSelected && !isCorrect) {
+                      buttonClass += "border-2 border-red-400 bg-gradient-to-r from-red-50/90 to-pink-50/90 text-red-800 shadow-lg";
+                    } else {
+                      buttonClass += "border border-gray-200 bg-gray-50/60 text-gray-500";
+                    }
+                  } else {
+                    if (isSelected) {
+                      buttonClass += "border-2 border-blue-400 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 text-blue-800 shadow-lg";
+                    } else {
+                      buttonClass += "border border-white/40 bg-white/60 text-gray-700 hover:border-blue-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 hover:shadow-lg";
+                    }
+                  }
+
+                  return (
+                    <div key={alternativeIndex}>
+                      <button
+                        onClick={() => handleAnswerSelect(questionIndex, alternativeIndex)}
+                        className={buttonClass}
+                        disabled={submitted}
+                      >
+                        <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                          isSelected 
+                            ? (submitted && isCorrect ? 'border-green-500 bg-green-500' : submitted && !isCorrect ? 'border-red-500 bg-red-500' : 'border-blue-500 bg-blue-500')
+                            : submitted && isCorrect ? 'border-green-500 bg-green-500' : 'border-gray-300 bg-white'
+                        }`}>
+                          {(isSelected || (submitted && isCorrect)) && (
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-semibold text-lg">{String.fromCharCode(64 + alternativeIndex)}.</span>
+                        <span className="font-medium">{alternativeText}</span>
+                      </button>
+                      
+                      {showFeedback && (
+                        <div className={`mt-3 p-4 rounded-2xl text-sm shadow-lg ${
+                          isCorrect 
+                            ? 'bg-gradient-to-r from-green-100/90 to-emerald-100/90 text-green-800 border border-green-200' 
+                            : 'bg-gradient-to-r from-red-100/90 to-pink-100/90 text-red-800 border border-red-200'
+                        }`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                              isCorrect ? 'bg-green-500' : 'bg-red-500'
+                            }`}>
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                {isCorrect ? (
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                ) : (
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                    clipRule="evenodd"
+                                  />
+                                )}
+                              </svg>
+                            </div>
+                            <span className="font-medium leading-relaxed">{getRetroalimentacion(pregunta, alternativeIndex)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Submit Button */}
+        {!submitted && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={handleSubmit}
+              disabled={Object.keys(selectedAnswers).length !== preguntas.length}
+              className="backdrop-blur-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-8 py-4 rounded-2xl font-semibold shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-lg"
+            >
+              <div className="flex items-center gap-3">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Enviar Respuestas
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Results Summary */}
+        {submitted && score && (
+          <div className="mt-8 backdrop-blur-md bg-white/80 border border-white/20 rounded-3xl p-8 shadow-2xl">
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">Resumen de Resultados</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="text-center p-6 backdrop-blur-md bg-gradient-to-r from-gray-50/80 to-slate-50/80 rounded-2xl border border-gray-200 shadow-lg">
+                <div className="text-3xl font-bold text-gray-700 mb-2">{score.total}</div>
+                <div className="text-gray-600 font-medium">Total de preguntas</div>
+              </div>
+              <div className="text-center p-6 backdrop-blur-md bg-gradient-to-r from-green-50/80 to-emerald-50/80 rounded-2xl border border-green-200 shadow-lg">
+                <div className="text-3xl font-bold text-green-600 mb-2">{score.correct}</div>
+                <div className="text-green-700 font-medium">Respuestas correctas</div>
+              </div>
+              <div className="text-center p-6 backdrop-blur-md bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-2xl border border-blue-200 shadow-lg">
+                <div className="text-3xl font-bold text-blue-600 mb-2">{score.percentage}%</div>
+                <div className="text-blue-700 font-medium">Puntuación final</div>
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => {
+                  setSelectedAnswers({});
+                  setSubmitted(false);
+                  setShowResults(false);
+                }}
+                className="backdrop-blur-md bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reintentar
+                </div>
+              </button>
+              <button
+                onClick={() => router.push(`/teacher/class/${id}`)}
+                className="backdrop-blur-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Volver a la Clase
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

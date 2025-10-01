@@ -6,13 +6,6 @@ import { apiService, ClaseData } from '../../../lib/api';
 
 export default function CreateClassPage() {
   const router = useRouter();
-  
-  // New state for the initial form creation step
-  const [currentStep, setCurrentStep] = useState<'initial' | 'form'>('initial');
-  const [formId, setFormId] = useState<number | null>(null);
-  const [formLink, setFormLink] = useState<string | null>(null);
-  const [isCreatingForm, setIsCreatingForm] = useState(false);
-  const [isWaitingForLink, setIsWaitingForLink] = useState(false);
 
   // Check authentication on component mount
   useEffect(() => {
@@ -46,57 +39,6 @@ export default function CreateClassPage() {
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'processing' | 'complete'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  // Function to create a new form
-  const createForm = async () => {
-    setIsCreatingForm(true);
-    setError(null);
-    
-    try {
-      // Use apiService to create form
-      const result = await apiService.createFormulario();
-      setFormId(result.id!);
-      
-      // Start waiting for the link generation
-      setIsWaitingForLink(true);
-      
-      setTimeout(async () => {
-        await fetchFormLink(result.id!);
-      }, 10000);
-      
-    } catch (error) {
-      console.error('Error creating form:', error);
-      setError(error instanceof Error ? error.message : 'Error al crear el formulario');
-    } finally {
-      setIsCreatingForm(false);
-    }
-  };
-
-  // Function to fetch the form link
-  const fetchFormLink = async (formId: number) => {
-    try {
-      const formData = await apiService.getFormulario(formId);
-      console.log(formData)
-      if (formData.enlace) {
-        setFormLink(formData.enlace);
-        setIsWaitingForLink(false);
-      } else {
-        // If no link yet, try again after a short delay
-        setTimeout(() => fetchFormLink(formId), 2000);
-      }
-    } catch (error) {
-      console.error('Error fetching form link:', error);
-      setError(error instanceof Error ? error.message : 'Error al obtener el enlace del formulario');
-      setIsWaitingForLink(false);
-    }
-  };
-
-  // Function to proceed to the main form
-  const proceedToMainForm = () => {
-    if (formLink && formId) {
-      setCurrentStep('form');
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
@@ -116,7 +58,6 @@ export default function CreateClassPage() {
       // Prepare data for API
       const claseData: ClaseData = {
         id_docente: teacherId, // Use actual teacher ID from localStorage
-        id_formulario: formId || undefined, // Use the created form ID
         nombre: formData.nombre,
         perfil: formData.perfil,
         area: formData.area,
@@ -204,569 +145,452 @@ export default function CreateClassPage() {
     };
 
     return (
-      <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden" style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}>
-        <div className="layout-container flex h-full grow flex-col">
-          <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-            <div className="flex items-center gap-4 text-[#0d141c]">
-              <div className="size-4">
-                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <g clipPath="url(#clip0_6_330)">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                      fill="currentColor"
-                    ></path>
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"></rect></clipPath>
-                  </defs>
-                </svg>
-              </div>
-              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
-            </div>
-          </header>
-          <div className="px-40 flex flex-1 justify-center py-5 items-center">
-            <div className="text-center">
-              {error ? (
-                <div className="text-center">
-                  <div className="text-red-500 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 256 256" className="mx-auto">
-                      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm-8,56a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm8,104a12,12,0,1,1,12-12A12,12,0,0,1,128,184Z"/>
-                    </svg>
-                  </div>
-                  <h2 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-4">Error al crear la clase</h2>
-                  <p className="text-red-600 text-base mb-6">{error}</p>
-                  <button
-                    onClick={() => {setError(null); setIsGenerating(false);}}
-                    className="bg-[#0d80f2] text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600"
-                  >
-                    Reintentar
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#0d80f2] mx-auto mb-8"></div>
-                  <h2 className="text-[#0d141c] text-[28px] font-bold leading-tight mb-4">Generando contenido</h2>
-                  <p className="text-[#49739c] text-base">{getProgressMessage()}</p>
-                  {uploadedFiles.length > 0 && (
-                    <p className="text-[#49739c] text-sm mt-2">
-                      {uploadProgress === 'uploading' && `Subiendo ${uploadedFiles.length} archivo(s)...`}
-                      {uploadProgress === 'processing' && 'Analizando documentos y generando contenido personalizado...'}
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-xl border border-white/20 p-12 text-center max-w-md">
+          <div className="relative mb-8">
+            <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-indigo-400 rounded-full animate-spin mx-auto" style={{animationDirection: 'reverse', animationDuration: '1.5s'}}></div>
           </div>
+          <h2 className="text-gray-800 text-xl font-bold mb-3">{getProgressMessage()}</h2>
+          <p className="text-gray-600 text-sm">
+            Esto puede tomar algunos minutos...
+          </p>
         </div>
       </div>
     );
   }
 
-  // Initial step - Form creation
-  if (currentStep === 'initial') {
-    return (
-      <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden" 
-        style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}
-      >
-        <div className="layout-container flex h-full grow flex-col">
-          <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-            <div className="flex items-center gap-4 text-[#0d141c]">
-              <div className="size-4">
-                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <g clipPath="url(#clip0_6_330)">
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                      fill="currentColor"
-                    ></path>
-                  </g>
-                  <defs>
-                    <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"></rect></clipPath>
-                  </defs>
-                </svg>
-              </div>
-              <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
-            </div>
-            <div className="flex flex-1 justify-end gap-8">
-              <div className="flex items-center gap-9">
-                <button 
-                  className="text-[#0d141c] text-sm font-medium leading-normal hover:text-[#0d80f2]"
-                  onClick={() => router.push('/teacher/dashboard')}
-                >
-                  ← Volver al Dashboard
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <div className="px-40 flex flex-1 justify-center py-5 items-center">
-            <div className="text-center max-w-2xl">
-              {error ? (
-                <div className="mb-8">
-                  <div className="text-red-500 mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 256 256" className="mx-auto">
-                      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm-8,56a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm8,104a12,12,0,1,1,12-12A12,12,0,0,1,128,184Z"/>
-                    </svg>
-                  </div>
-                  <h2 className="text-[#0d141c] text-[24px] font-bold leading-tight mb-4">Error</h2>
-                  <p className="text-red-600 text-base mb-6">{error}</p>
-                  <button
-                    onClick={() => setError(null)}
-                    className="bg-[#0d80f2] text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600"
-                  >
-                    Reintentar
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <h1 className="text-[#0d141c] text-[32px] font-bold leading-tight mb-8">
-                    Formulario para estudiantes
-                  </h1>
-                  
-                  {!formId ? (
-                    <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] p-8">
-                      <p className="text-[#49739c] text-lg leading-relaxed mb-8">
-                        Antes de crear la clase, necesitamos generar un formulario que los estudiantes podrán completar. 
-                        Esto nos ayudará a personalizar mejor el contenido educativo.
-                      </p>
-                      <button
-                        onClick={createForm}
-                        disabled={isCreatingForm}
-                        className="bg-[#0d80f2] text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 mx-auto"
-                      >
-                        {isCreatingForm ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            Creando formulario...
-                          </>
-                        ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
-                              <path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/>
-                            </svg>
-                            Crear formulario
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="bg-white rounded-lg shadow-sm border border-[#e7edf4] p-8">
-                      {isWaitingForLink ? (
-                        <div>
-                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#0d80f2] mx-auto mb-6"></div>
-                          <h2 className="text-[#0d141c] text-[24px] font-bold leading-tight mb-4">Generando enlace del formulario</h2>
-                          <p className="text-[#49739c] text-base">
-                            Por favor espera mientras generamos el enlace personalizado para tus estudiantes...
-                          </p>
-                        </div>
-                      ) : formLink ? (
-                        <div>
-                          <div className="text-green-500 mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 256 256" className="mx-auto">
-                              <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/>
-                            </svg>
-                          </div>
-                          <h2 className="text-[#0d141c] text-[24px] font-bold leading-tight mb-4">¡Formulario creado exitosamente!</h2>
-                          <p className="text-[#49739c] text-base mb-6">
-                            Comparte este enlace con tus estudiantes para que completen el formulario:
-                          </p>
-                          
-                          <div className="bg-[#f8fafc] border border-[#cedbe8] rounded-lg p-4 mb-6">
-                            <p className="text-sm text-[#49739c] mb-2">Enlace del formulario:</p>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={formLink}
-                                readOnly
-                                className="flex-1 p-2 border border-[#cedbe8] rounded text-sm bg-white"
-                              />
-                              <button
-                                onClick={() => navigator.clipboard.writeText(formLink)}
-                                className="px-3 py-2 bg-[#0d80f2] text-white rounded text-sm hover:bg-blue-600"
-                              >
-                                Copiar
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <button
-                            onClick={proceedToMainForm}
-                            className="bg-[#0d80f2] text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-blue-600 flex items-center gap-3 mx-auto"
-                          >
-                            Siguiente
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
-                              <path d="m221.66,133.66-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/>
-                            </svg>
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main form step
   return (
-    <div className="relative flex size-full min-h-screen flex-col bg-slate-50 group/design-root overflow-x-hidden" 
-      style={{
-        fontFamily: 'Inter, "Noto Sans", sans-serif',
-        '--checkbox-tick-svg': `url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(248,250,252)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e')`
-      } as any}
-    >
-      <div className="layout-container flex h-full grow flex-col">
-        <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#e7edf4] px-10 py-3">
-          <div className="flex items-center gap-4 text-[#0d141c]">
-            <div className="size-4">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clipPath="url(#clip0_6_330)">
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z"
-                    fill="currentColor"
-                  ></path>
-                </g>
-                <defs>
-                  <clipPath id="clip0_6_330"><rect width="48" height="48" fill="white"></rect></clipPath>
-                </defs>
-              </svg>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="flex h-full flex-col">
+        {/* Header */}
+        <header className="backdrop-blur-md bg-white/70 border-b border-white/20 shadow-sm">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4 text-gray-800">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.84L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" clipRule="evenodd"/>
+                </svg>
+              </div>
+              <h1 className="text-gray-800 text-xl font-bold">LearningForLive</h1>
             </div>
-            <h2 className="text-[#0d141c] text-lg font-bold leading-tight tracking-[-0.015em]">DocentePlus AI</h2>
-          </div>
-          <div className="flex flex-1 justify-end gap-8">
-            <div className="flex items-center gap-9">
-              <button 
-                className="text-[#0d141c] text-sm font-medium leading-normal"
-                onClick={() => router.push('/teacher/dashboard')}
-              >
-                My Classes
-              </button>
-            </div>
+            <button 
+              className="text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors duration-200"
+              onClick={() => router.push('/teacher/dashboard')}
+            >
+              ← Volver al Dashboard
+            </button>
           </div>
         </header>
 
-        <div className="px-40 flex flex-1 justify-center py-5">
-          <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
-            <div className="flex flex-wrap justify-between gap-3 p-4">
-              <p className="text-[#0d141c] tracking-light text-[32px] font-bold leading-tight min-w-72">
-                Crear Nueva Clase
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-              {/* Información Básica */}
-              <div className="bg-[#f8fafc] rounded-lg border border-[#cedbe8] p-6">
-                <h3 className="text-[#0d141c] text-[18px] font-bold leading-tight mb-4">Información Básica</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Nombre de la clase *</p>
-                    <input
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Ej: Matemáticas Básicas"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Perfil cognitivo *</p>
-                    <select
-                      name="perfil"
-                      value={formData.perfil}
-                      onChange={handleInputChange}
-                      required
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    >
-                      <option value="">Seleccionar perfil</option>
-                      <option value="Visual">Visual</option>
-                      <option value="Auditivo">Auditivo</option>
-                      <option value="Lector">Lector/Escritor</option>
-                      <option value="Kinestesico">Kinestésico</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Área *</p>
-                    <input
-                      name="area"
-                      value={formData.area}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Ej: Matemáticas, Ciencias, Historia"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Tema específico *</p>
-                    <input
-                      name="tema"
-                      value={formData.tema}
-                      onChange={handleInputChange}
-                      required
-                      placeholder="Ej: Suma y resta, La Revolución Francesa"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Nivel educativo *</p>
-                    <select
-                      name="nivel_educativo"
-                      value={formData.nivel_educativo}
-                      onChange={handleInputChange}
-                      required
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    >
-                      <option value="">Seleccionar nivel</option>
-                      <option value="Primaria">Primaria</option>
-                      <option value="Secundaria">Secundaria</option>
-                      <option value="Pregrado">Pregrado</option>
-                      <option value="Posgrado">Posgrado</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Duración estimada (minutos) *</p>
-                    <input
-                      name="duracion_estimada"
-                      type="number"
-                      value={formData.duracion_estimada}
-                      onChange={handleInputChange}
-                      required
-                      min="15"
-                      max="300"
-                      placeholder="60"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
+        {/* Main Content */}
+        <div className="flex-1 px-6 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-xl border border-white/20 p-8">
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                  </svg>
                 </div>
+                <h1 className="text-gray-800 text-3xl font-bold mb-4">
+                  Crear Nueva Clase
+                </h1>
+                <p className="text-gray-600 text-lg">
+                  Configure los detalles de su clase para generar contenido educativo personalizado
+                </p>
               </div>
 
-              {/* Configuración de sesión */}
-              <div className="bg-[#f8fafc] rounded-lg border border-[#cedbe8] p-6">
-                <h3 className="text-[#0d141c] text-[18px] font-bold leading-tight mb-4">Configuración de Sesión</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Tipo de sesión *</p>
-                    <select
-                      name="tipo_sesion"
-                      value={formData.tipo_sesion}
-                      onChange={handleInputChange}
-                      required
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    >
-                      <option value="">Seleccionar tipo</option>
-                      <option value="Clase teorica">Clase teórica</option>
-                      <option value="Taller practico">Taller práctico</option>
-                      <option value="Laboratorio">Laboratorio</option>
-                      <option value="Seminario">Seminario</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Modalidad *</p>
-                    <select
-                      name="modalidad"
-                      value={formData.modalidad}
-                      onChange={handleInputChange}
-                      required
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                    >
-                      <option value="">Seleccionar modalidad</option>
-                      <option value="Presencial">Presencial</option>
-                      <option value="Virtual">Virtual</option>
-                      <option value="Hibrida">Híbrida</option>
-                    </select>
-                  </label>
+              {error && (
+                <div className="backdrop-blur-md bg-red-50/80 border border-red-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+                    </svg>
+                    <p className="text-red-700 text-sm font-medium">{error}</p>
+                  </div>
                 </div>
-                <div className="mt-4">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="solo_informacion_proporcionada"
-                      checked={formData.solo_informacion_proporcionada}
-                      onChange={handleInputChange}
-                      className="h-5 w-5 rounded border-[#cedbe8] border-2 bg-transparent text-[#0d80f2] checked:bg-[#0d80f2] checked:border-[#0d80f2] checked:bg-[image:--checkbox-tick-svg] focus:ring-0 focus:ring-offset-0 focus:border-[#cedbe8] focus:outline-none"
-                    />
-                    <p className="text-[#0d141c] text-base font-normal leading-normal ml-3">
-                      Usar solo información proporcionada (sin conocimiento externo)
-                    </p>
-                  </label>
-                </div>
-              </div>
+              )}
 
-              {/* Objetivos y Taxonomía */}
-              <div className="bg-[#f8fafc] rounded-lg border border-[#cedbe8] p-6">
-                <h3 className="text-[#0d141c] text-[18px] font-bold leading-tight mb-4">Objetivos y Taxonomía</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Objetivos de aprendizaje *</p>
-                    <textarea
-                      name="objetivos_aprendizaje"
-                      value={formData.objetivos_aprendizaje}
-                      onChange={handleInputChange}
-                      required
-                      rows={3}
-                      placeholder="Describe qué deben lograr los estudiantes al finalizar la clase"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label className="flex flex-col">
-                      <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Taxonomía de Bloom *</p>
-                      <select
-                        name="resultado_taxonomia"
-                        value={formData.resultado_taxonomia}
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Información Básica */}
+                <div className="backdrop-blur-md bg-white/50 rounded-xl border border-white/30 p-6">
+                  <h2 className="text-gray-800 text-xl font-bold mb-6 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                    Información Básica
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="nombre" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Nombre de la clase *
+                      </label>
+                      <input
+                        type="text"
+                        id="nombre"
+                        name="nombre"
+                        value={formData.nombre}
                         onChange={handleInputChange}
                         required
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                        placeholder="Ej: Matemáticas Básicas"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="perfil" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Perfil de aprendizaje predominante *
+                      </label>
+                      <select
+                        id="perfil"
+                        name="perfil"
+                        value={formData.perfil}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                      >
+                        <option value="">Seleccionar perfil</option>
+                        <option value="Visual">Visual</option>
+                        <option value="Auditivo">Auditivo</option>
+                        <option value="Lector">Lector/Escritor</option>
+                        <option value="Kinestésico">Kinestésico</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="area" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Área académica
+                      </label>
+                      <input
+                        type="text"
+                        id="area"
+                        name="area"
+                        value={formData.area}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                        placeholder="Ej: Matemáticas, Ciencias, Historia"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="tema" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Tema específico
+                      </label>
+                      <input
+                        type="text"
+                        id="tema"
+                        name="tema"
+                        value={formData.tema}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                        placeholder="Ej: Ecuaciones lineales, Revolución Industrial"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Configuración de Clase */}
+                <div className="backdrop-blur-md bg-white/50 rounded-xl border border-white/30 p-6">
+                  <h2 className="text-gray-800 text-xl font-bold mb-6 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                    Configuración de Clase
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label htmlFor="nivel_educativo" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Nivel educativo
+                      </label>
+                      <select
+                        id="nivel_educativo"
+                        name="nivel_educativo"
+                        value={formData.nivel_educativo}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
                       >
                         <option value="">Seleccionar nivel</option>
-                        <option value="Recordar">Recordar</option>
-                        <option value="Comprender">Comprender</option>
-                        <option value="Aplicar">Aplicar</option>
-                        <option value="Analizar">Analizar</option>
-                        <option value="Evaluar">Evaluar</option>
-                        <option value="Crear">Crear</option>
+                        <option value="Primaria">Primaria</option>
+                        <option value="Secundaria">Secundaria</option>
+                        <option value="Pregrado">Pregrado</option>
+                        <option value="Posgrado">Posgrado</option>
                       </select>
-                    </label>
-                    <label className="flex flex-col">
-                      <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Estilo del material *</p>
-                      <select
-                        name="estilo_material"
-                        value={formData.estilo_material}
-                        onChange={handleInputChange}
-                        required
-                        className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                      >
-                        <option value="">Seleccionar estilo</option>
-                        <option value="Formal academico">Formal y académico</option>
-                        <option value="Cercano y motivador">Cercano y motivador</option>
-                        <option value="Practico y directo">Práctico y directo</option>
-                      </select>
-                    </label>
-                  </div>
-                </div>
-              </div>
+                    </div>
 
-              {/* Contexto Estudiantil */}
-              <div className="bg-[#f8fafc] rounded-lg border border-[#cedbe8] p-6">
-                <h3 className="text-[#0d141c] text-[18px] font-bold leading-tight mb-4">Contexto Estudiantil</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Conocimientos previos de los estudiantes *</p>
-                    <textarea
-                      name="conocimientos_previos_estudiantes"
-                      value={formData.conocimientos_previos_estudiantes}
-                      onChange={handleInputChange}
-                      required
-                      rows={3}
-                      placeholder="Describe qué conocimientos ya tienen los estudiantes sobre el tema"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Aspectos motivacionales *</p>
-                    <textarea
-                      name="aspectos_motivacionales"
-                      value={formData.aspectos_motivacionales}
-                      onChange={handleInputChange}
-                      required
-                      rows={3}
-                      placeholder="Describe qué elementos pueden motivar a los estudiantes en esta clase"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Recursos */}
-              <div className="bg-[#f8fafc] rounded-lg border border-[#cedbe8] p-6">
-                <h3 className="text-[#0d141c] text-[18px] font-bold leading-tight mb-4">Recursos</h3>
-                
-                {/* Nota informativa */}
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256" className="text-blue-600 mt-0.5 mr-3 flex-shrink-0">
-                      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm-4,48a12,12,0,1,1-12,12A12,12,0,0,1,124,72Zm12,112a16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40a8,8,0,0,1,0,16Z"/>
-                    </svg>
                     <div>
-                      <p className="text-blue-800 text-sm font-medium mb-1">Generación automática de recursos</p>
-                      <p className="text-blue-700 text-sm">
-                        Los recursos educativos se generarán automáticamente basándose en la información proporcionada. 
-                        Incluirá guías de estudio personalizadas según el perfil de aprendizaje detectado.
-                      </p>
+                      <label htmlFor="duracion_estimada" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Duración estimada (minutos)
+                      </label>
+                      <input
+                        type="number"
+                        id="duracion_estimada"
+                        name="duracion_estimada"
+                        value={formData.duracion_estimada}
+                        onChange={handleInputChange}
+                        min="15"
+                        max="480"
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                        placeholder="60"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="tipo_sesion" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Tipo de sesión
+                      </label>
+                      <select
+                        id="tipo_sesion"
+                        name="tipo_sesion"
+                        value={formData.tipo_sesion}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                      >
+                        <option value="">Seleccionar tipo</option>
+                        <option value="Clase teorica">Clase teórica</option>
+                        <option value="Taller practico">Taller práctico</option>
+                        <option value="Laboratorio">Laboratorio</option>
+                        <option value="Seminario">Seminario</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="modalidad" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Modalidad
+                      </label>
+                      <select
+                        id="modalidad"
+                        name="modalidad"
+                        value={formData.modalidad}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                      >
+                        <option value="">Seleccionar modalidad</option>
+                        <option value="Presencial">Presencial</option>
+                        <option value="Virtual sincronica">Virtual sincrónica</option>
+                        <option value="Virtual asincronica">Virtual asincrónica</option>
+                        <option value="Híbrida">Híbrida</option>
+                      </select>
                     </div>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Recursos disponibles *</p>
-                    <textarea
-                      name="recursos"
-                      value={formData.recursos}
-                      onChange={handleInputChange}
-                      required
-                      rows={2}
-                      placeholder="Ej: Proyector, pizarra, computadoras, laboratorio"
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] p-[15px] text-base font-normal leading-normal"
-                    />
-                  </label>
 
-                  <label className="flex flex-col">
-                    <p className="text-[#0d141c] text-base font-medium leading-normal pb-2">Subir Archivo (PDF, DOC, DOCX)</p>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      multiple
-                      className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0d141c] focus:outline-0 focus:ring-0 border border-[#cedbe8] bg-slate-50 focus:border-[#0d80f2] h-14 p-[15px] text-base font-normal leading-normal"
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                  {uploadedFiles.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {uploadedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-[#e7edf4] rounded px-3 py-2">
-                          <span className="text-[#49739c] text-sm">{file.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => removeFile(index)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      ))}
+                {/* Detalles Pedagógicos */}
+                <div className="backdrop-blur-md bg-white/50 rounded-xl border border-white/30 p-6">
+                  <h2 className="text-gray-800 text-xl font-bold mb-6 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
                     </div>
-                  )}
-                </div>
-              </div>
+                    Detalles Pedagógicos
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label htmlFor="objetivos_aprendizaje" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Objetivos de aprendizaje
+                      </label>
+                      <textarea
+                        id="objetivos_aprendizaje"
+                        name="objetivos_aprendizaje"
+                        value={formData.objetivos_aprendizaje}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 resize-none"
+                        placeholder="Describe los objetivos que esperas que los estudiantes alcancen..."
+                      />
+                    </div>
 
-              {/* Botones */}
-              <div className="flex gap-3 p-4">
-                <button
-                  type="button"
-                  onClick={() => router.push('/teacher/dashboard')}
-                  className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#e7edf4] text-[#0d141c] text-sm font-bold leading-normal tracking-[0.015em]"
-                >
-                  <span className="truncate">Cancelar</span>
-                </button>
-                <button
-                  type="submit"
-                  disabled={isGenerating || !formData.nombre || !formData.perfil}
-                  className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-[#0d80f2] text-slate-50 text-sm font-bold leading-normal tracking-[0.015em] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span className="truncate">Crear Clase</span>
-                </button>
-              </div>
-            </form>
+                    <div>
+                      <label htmlFor="conocimientos_previos_estudiantes" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Conocimientos previos de los estudiantes
+                      </label>
+                      <textarea
+                        id="conocimientos_previos_estudiantes"
+                        name="conocimientos_previos_estudiantes"
+                        value={formData.conocimientos_previos_estudiantes}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 resize-none"
+                        placeholder="Describe qué conocimientos previos tienen los estudiantes..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="resultado_taxonomia" className="block text-gray-700 text-sm font-semibold mb-2">
+                          Nivel de Bloom esperado
+                        </label>
+                        <select
+                          id="resultado_taxonomia"
+                          name="resultado_taxonomia"
+                          value={formData.resultado_taxonomia}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                        >
+                          <option value="">Seleccionar nivel</option>
+                          <option value="Recordar">Recordar</option>
+                          <option value="Comprender">Comprender</option>
+                          <option value="Aplicar">Aplicar</option>
+                          <option value="Analizar">Analizar</option>
+                          <option value="Evaluar">Evaluar</option>
+                          <option value="Crear">Crear</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="estilo_material" className="block text-gray-700 text-sm font-semibold mb-2">
+                          Estilo del material
+                        </label>
+                        <select
+                          id="estilo_material"
+                          name="estilo_material"
+                          value={formData.estilo_material}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200"
+                        >
+                          <option value="">Seleccionar estilo</option>
+                          <option value="Formal academico">Formal y académico</option>
+                          <option value="Cercano y motivador">Cercano y motivador</option>
+                          <option value="Practico y directo">Práctico y directo</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="aspectos_motivacionales" className="block text-gray-700 text-sm font-semibold mb-2">
+                        Aspectos motivacionales
+                      </label>
+                      <textarea
+                        id="aspectos_motivacionales"
+                        name="aspectos_motivacionales"
+                        value={formData.aspectos_motivacionales}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full p-3 border border-white/40 rounded-xl bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 resize-none"
+                        placeholder="Describe elementos que puedan motivar a los estudiantes..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Material de Apoyo */}
+                <div className="backdrop-blur-md bg-white/50 rounded-xl border border-white/30 p-6">
+                  <h2 className="text-gray-800 text-xl font-bold mb-6 flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                    Material
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-gray-700 text-sm font-semibold mb-3">
+                        Subir archivos
+                      </label>
+                      <div className="backdrop-blur-md bg-blue-50/60 border-2 border-dashed border-blue-300 rounded-xl p-6 text-center">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileChange}
+                          accept=".pdf,.doc,.docx,.txt,.ppt,.pptx"
+                          className="hidden"
+                          id="file-upload"
+                        />
+                        <label htmlFor="file-upload" className="cursor-pointer">
+                          <div className="flex flex-col items-center">
+                            <svg className="w-12 h-12 text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"/>
+                            </svg>
+                            <p className="text-blue-600 font-semibold mb-2">
+                              Haz clic para subir archivos
+                            </p>
+                            <p className="text-blue-500 text-sm">
+                              PDF, DOC, DOCX, TXT, PPT, PPTX (máx. 10MB cada uno)
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                      
+                      {uploadedFiles.length > 0 && (
+                        <div className="mt-4 space-y-2">
+                          <p className="text-gray-700 text-sm font-semibold">Archivos seleccionados:</p>
+                          {uploadedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between backdrop-blur-md bg-white/70 border border-white/40 rounded-lg p-3">
+                              <div className="flex items-center gap-3">
+                                <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z" clipRule="evenodd"/>
+                                </svg>
+                                <div>
+                                  <p className="text-gray-800 text-sm font-medium">{file.name}</p>
+                                  <p className="text-gray-500 text-xs">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeFile(index)}
+                                className="text-red-500 hover:text-red-700 p-1"
+                              >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="backdrop-blur-md bg-amber-50/60 border border-amber-200 rounded-xl p-4">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="solo_informacion_proporcionada"
+                          checked={formData.solo_informacion_proporcionada}
+                          onChange={handleInputChange}
+                          className="h-5 w-5 rounded border-amber-300 border-2 bg-transparent text-amber-600 checked:bg-amber-600 checked:border-amber-600 focus:ring-0 focus:ring-offset-0 focus:border-amber-300 focus:outline-none mt-0.5"
+                        />
+                        <div>
+                          <p className="text-gray-800 text-sm font-semibold mb-1">
+                            Usar solo información proporcionada
+                          </p>
+                          <p className="text-gray-600 text-xs">
+                            La IA utilizará únicamente el material que proporcione, sin conocimiento externo
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-4 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => router.push('/teacher/dashboard')}
+                    className="backdrop-blur-md bg-gray-100/80 hover:bg-gray-200/80 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all duration-200 border border-gray-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isGenerating || !formData.nombre || !formData.perfil}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-8 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed shadow-lg"
+                  >
+                    Crear Clase
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       </div>
