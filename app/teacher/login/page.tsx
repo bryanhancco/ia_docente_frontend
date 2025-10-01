@@ -32,6 +32,7 @@ export default function LoginPage() {
       
       // Store user data in localStorage with the correct key
       localStorage.setItem('userData', JSON.stringify(response.docente));
+      console.log(JSON.stringify(response.docente))
       
       // Redirect to dashboard
       router.push('/teacher/dashboard');
