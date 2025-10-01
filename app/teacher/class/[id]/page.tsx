@@ -157,30 +157,6 @@ export default function ClassDetailPage() {
         
       } catch (error) {
         console.error('Error fetching class data:', error);
-        // En caso de error, usar datos mock para desarrollo
-        const mockClassData: ClaseResponse = {
-          id: parseInt(id as string),
-          id_formulario: 1,
-          id_docente: 1,
-          nombre: 'Nueva Clase Generada',
-          perfil: 'Visual',
-          area: 'Generada por IA',
-          tema: 'Personalizado',
-          nivel_educativo: 'Adaptable',
-          duracion_estimada: 60,
-          tipo_sesion: 'Clase teorica',
-          modalidad: 'Presencial',
-          objetivos_aprendizaje: 'Contenido generado automáticamente por IA según los datos proporcionados',
-          resultado_taxonomia: 'Comprender',
-          estilo_material: 'Cercano y motivador',
-          conocimientos_previos_estudiantes: 'Se adaptará según el contexto proporcionado',
-          aspectos_motivacionales: 'Enfoque práctico y aplicado',
-          recursos: 'Recursos digitales y físicos según disponibilidad',
-          tipo_recursos_generar: 'Presentación personalizada',
-          created_at: '2024-01-20T10:00:00Z',
-          updated_at: '2024-01-20T10:00:00Z'
-        };
-        setClase(mockClassData);
       } finally {
         setLoading(false);
       }
