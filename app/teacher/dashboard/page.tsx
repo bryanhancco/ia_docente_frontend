@@ -24,11 +24,13 @@ export default function DashboardPage() {
         setIsLoadingUser(true);
         const userDataString = localStorage.getItem('userData');
         
+        /*
         if (!userDataString) {
           // No user data, redirect to login
           router.push('/teacher/login');
           return;
         }
+          */
 
         const userData = JSON.parse(userDataString);
         const docenteData = await apiService.getDocente(userData.id);
