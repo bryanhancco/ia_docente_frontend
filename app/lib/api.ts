@@ -1,9 +1,25 @@
 import { getApiUrl, checkApiConnection } from './env-check';
 
+import { config, validateApiUrl, getEnvironmentHeaders } from './config';
+
 // Configuración de la URL base de la API con debugging
 const getApiBaseUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  return envUrl;
+  const finalUrl = config.apiBaseUrl;
+  
+  if (config.debug) {
+    console.log('🔍 Environment Debug Info:');
+    console.log('- Config:', config);
+    console.log('- Final API_BASE_URL:', finalUrl);
+    console.log('- Is valid URL:', validateApiUrl(finalUrl));
+    console.log('- Current location:', typeof window !== 'undefined' ? window.location.href : 'N/A');
+  }
+  
+  if (!validateApiUrl(finalUrl)) {
+    console.error('❌ Invalid API URL detected:', finalUrl);
+    throw new Error(`Invalid API URL: ${finalUrl}`);
+  }
+  
+  return finalUrl;
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -595,24 +611,93 @@ export interface AudioValidationResponseDTO {
 class ApiService {
   private async fetchWithErrorHandling(url: string, options?: RequestInit) {
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const fullUrl = `${API_BASE_URL}${url}`;
+      
+      if (config.debug) {
+        console.log('🌐 Making API request:', {
+          url: fullUrl,
+          method: options?.method || 'GET',
+          headers: options?.headers,
+          API_BASE_URL,
+          config
+        });
+      }
+
+      const environmentHeaders = getEnvironmentHeaders();
+      
+      const response = await fetch(fullUrl, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          ...environmentHeaders,
           ...options?.headers,
         },
         mode: 'cors',
       });
 
+      if (config.debug) {
+        console.log('📡 Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          url: response.url
+        });
+      }
+
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Response not OK:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText: errorText.substring(0, 500) + (errorText.length > 500 ? '...' : '')
+        });
+        
+        // Si es HTML, probablemente es una página de error
+        if (errorText.includes('<!DOCTYPE') || errorText.includes('<html')) {
+          throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}. This usually means the API endpoint is not available or there's a routing issue. URL: ${fullUrl}`);
+        }
+        
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      return await response.json();
+      // Intentar parsear la respuesta como JSON
+      const responseText = await response.text();
+      
+      if (config.debug) {
+        console.log('📄 Response text preview:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
+      }
+
+      if (!responseText) {
+        console.log('⚠️ Empty response received');
+        return {};
+      }
+
+      // Verificar si es HTML antes de intentar parsear como JSON
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+        console.error('❌ Received HTML instead of JSON:', responseText.substring(0, 500));
+        throw new Error(`Server returned HTML instead of JSON. This usually means the API endpoint is not available or there's a CORS/routing issue. URL: ${fullUrl}`);
+      }
+
+      try {
+        const jsonData = JSON.parse(responseText);
+        if (config.debug) {
+          console.log('✅ Successfully parsed JSON response');
+        }
+        return jsonData;
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON:', {
+          parseError,
+          responseText: responseText.substring(0, 500)
+        });
+        const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parse error';
+        throw new Error(`Invalid JSON response: ${errorMessage}. Response: ${responseText.substring(0, 200)}`);
+      }
+
     } catch (error) {
-      console.error('API Error:', error);
+      console.error('🚨 API Request failed:', {
+        url: `${API_BASE_URL}${url}`,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }
@@ -652,6 +737,9 @@ class ApiService {
     try {
       const response = await fetch(`${API_BASE_URL}/clases/${idClase}/upload-files`, {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: formData,
       });
 
@@ -889,6 +977,9 @@ class ApiService {
 
       const response = await fetch(`${API_BASE_URL}/docentes/${idDocente}/foto`, {
         method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
         body: formData,
         mode: 'cors',
       });
@@ -936,6 +1027,7 @@ class ApiService {
         method: 'GET',
         headers: {
           'Accept': 'application/pdf,application/octet-stream',
+          'ngrok-skip-browser-warning': 'true',
         },
         mode: 'cors',
       });
@@ -1215,6 +1307,7 @@ class ApiService {
         method: 'GET',
         headers: {
           'Accept': 'application/octet-stream',
+          'ngrok-skip-browser-warning': 'true',
         },
         mode: 'cors',
       });
@@ -1763,6 +1856,9 @@ class ApiService {
 
     const response = await fetch(`${API_BASE_URL}/audio/text-to-speech/${idClase}`, {
       method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
       body: formData,
     });
 
@@ -1784,6 +1880,9 @@ class ApiService {
 
     const response = await fetch(`${API_BASE_URL}/audio/speech-to-text/${idClase}`, {
       method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
       body: formData,
     });
 
@@ -1820,6 +1919,9 @@ class ApiService {
 
     const response = await fetch(`${API_BASE_URL}/audio/validate`, {
       method: 'POST',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
       body: formData,
     });
 

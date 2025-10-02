@@ -35,6 +35,7 @@ export const checkApiConnection = async (baseUrl?: string): Promise<boolean> => 
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
     });
     
