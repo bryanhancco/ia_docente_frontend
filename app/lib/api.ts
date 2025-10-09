@@ -512,6 +512,7 @@ export interface ConversacionCreateDTO {
   tipo_emisor: TipoEntidadEnum;
   tipo_receptor: TipoEntidadEnum;
   mensaje: string;
+  archivo?: string; // Ruta del archivo de audio opcional
 }
 
 export interface ConversacionResponseDTO {
@@ -521,6 +522,7 @@ export interface ConversacionResponseDTO {
   tipo_emisor: TipoEntidadEnum;
   tipo_receptor: TipoEntidadEnum;
   mensaje: string;
+  archivo?: string; // Ruta del archivo de audio si existe
   created_at: string;
 }
 
@@ -539,6 +541,7 @@ export interface TTSRequestDTO {
   text: string;
   voice_model?: string;
   save_to_db?: boolean;
+  conversacion_id?: number;
 }
 
 export interface TTSResponseDTO {
@@ -1851,6 +1854,10 @@ class ApiService {
   async textToSpeech(idClase: number, data: TTSRequestDTO): Promise<TTSResponseDTO> {
     const formData = new FormData();
     formData.append('text', data.text);
+    // Si se proporciona, agregar el id de la conversación para que el backend pueda actualizar la columna 'archivo'
+    if (data.conversacion_id !== undefined && data.conversacion_id !== null) {
+      formData.append('conversacion_id', data.conversacion_id.toString());
+    }
     if (data.voice_model) formData.append('voice_model', data.voice_model);
     if (data.save_to_db !== undefined) formData.append('save_to_db', data.save_to_db.toString());
 

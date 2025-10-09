@@ -875,23 +875,12 @@ export default function ClassDetailPage() {
 
       {/* Chatbot Modal */}
       <ChatModal
-        showChatbot={showChatbot}
-        setShowChatbot={setShowChatbot}
-        student={student!}
-        classData={classData}
-        classId={classId as string}
-        fotoCaricaturaDocente={fotoCaricaturaDocente}
-        nombreDocente={nombreDocente}
-        chatMessages={chatMessages}
-        setChatMessages={setChatMessages}
-        currentMessage={currentMessage}
-        setCurrentMessage={setCurrentMessage}
-        isTyping={isTyping}
-        setIsTyping={setIsTyping}
-        historialConversaciones={historialConversaciones}
-        setHistorialConversaciones={setHistorialConversaciones}
-        loadingHistorial={loadingHistorial}
-        setLoadingHistorial={setLoadingHistorial}
+        show={showChatbot}
+        onClose={() => setShowChatbot(false)}
+        student={student}
+        classId={Number(classId)}
+        docenteName={nombreDocente}
+        docentePhoto={fotoCaricaturaDocente}
       />
           </div>
         </div>
