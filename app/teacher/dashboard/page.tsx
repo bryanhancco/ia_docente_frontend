@@ -182,7 +182,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}>
       <div className="flex h-full flex-col">
-        <header className="backdrop-blur-md bg-white/70 border-b border-white/20 px-6 py-4 shadow-sm">
+  <header className="backdrop-blur-md bg-white/70 border-b border-white/20 px-6 py-4 shadow-sm overflow-visible z-40 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 text-gray-800">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -222,7 +222,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Create Menu */}
-              <div className="relative" ref={menuRef}>
+              <div className="relative overflow-visible" ref={menuRef}>
                 <button
                   className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-6 py-2 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
                   onClick={() => setShowCreateMenu(!showCreateMenu)}
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                   Crear
                 </button>
                 {showCreateMenu && (
-                  <div className="absolute right-0 top-12 backdrop-blur-md bg-white/90 border border-white/20 rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
+                  <div className="absolute right-0 top-12 backdrop-blur-md bg-white/90 border border-white/20 rounded-xl shadow-xl z-50 min-w-[180px] overflow-hidden">
                     <button 
                       className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 border-b border-gray-100"
                       onClick={handleCreateClass}
@@ -261,7 +261,7 @@ export default function DashboardPage() {
               </div>
 
               {/* User Profile */}
-              <div className="relative" ref={profileMenuRef}>
+              <div className="relative overflow-visible" ref={profileMenuRef}>
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                   className="flex items-center gap-3 backdrop-blur-md bg-white/50 hover:bg-white/70 border border-white/30 rounded-xl p-2 transition-all duration-200"
@@ -285,7 +285,7 @@ export default function DashboardPage() {
                 </button>
 
                 {showProfileMenu && (
-                  <div className="absolute right-0 top-12 backdrop-blur-md bg-white/90 border border-white/20 rounded-xl shadow-xl z-10 min-w-[200px] overflow-hidden">
+                  <div className="absolute right-0 top-12 backdrop-blur-md bg-white/90 border border-white/20 rounded-xl shadow-xl z-50 min-w-[200px] overflow-hidden">
                     <button 
                       className="block w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 transition-colors duration-200 border-b border-gray-100"
                       onClick={() => {

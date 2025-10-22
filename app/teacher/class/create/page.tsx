@@ -375,7 +375,7 @@ export default function CreateClassPage() {
                         <option value="Presencial">Presencial</option>
                         <option value="Virtual sincronica">Virtual sincrónica</option>
                         <option value="Virtual asincronica">Virtual asincrónica</option>
-                        <option value="Híbrida">Híbrida</option>
+                        <option value="Hibrida">Híbrida</option>
                       </select>
                     </div>
                   </div>

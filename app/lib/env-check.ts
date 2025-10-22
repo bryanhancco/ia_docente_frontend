@@ -16,7 +16,12 @@ export const checkEnvironmentVariables = () => {
 };
 
 export const getApiUrl = (): string => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+  let apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
+  // Normalize: ensure we have a scheme (http/https). Some environments may provide URL without scheme.
+  if (!/^https?:\/\//i.test(apiUrl)) {
+    apiUrl = 'http://' + apiUrl;
+  }
   
   // Solo mostrar en desarrollo
   if (process.env.NODE_ENV === 'development') {

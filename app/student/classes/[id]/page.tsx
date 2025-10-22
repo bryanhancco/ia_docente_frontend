@@ -147,12 +147,14 @@ export default function ClassDetailPage() {
       setClassData(data);
 
       // Cargar contenidos generados de la clase
+      /*
       try {
         const contentsData = await apiService.getContenidos(Number(classId));
         setContents(contentsData);
       } catch (error) {
         console.log('No hay contenidos generados aún');
       }
+      */
 
       // Cargar foto caricatura del docente
       try {

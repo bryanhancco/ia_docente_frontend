@@ -725,8 +725,13 @@ class ApiService {
 
   // Cambiar estado de una clase (habilitar/deshabilitar)
   async cambiarEstadoClase(idClase: number, estado: boolean): Promise<{message: string, id_clase: number, nuevo_estado: boolean}> {
-    return this.fetchWithErrorHandling(`/clases/${idClase}/estado?estado=${estado}`, {
+    // El backend espera el valor 'estado' en el body (Body(...))
+    return this.fetchWithErrorHandling(`/clases/${idClase}/estado`, {
       method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ estado }),
     });
   }
 
@@ -738,8 +743,10 @@ class ApiService {
     });
 
     try {
-      const response = await fetch(`${API_BASE_URL}/clases/${idClase}/upload-files`, {
+      // Usar endpoint /files/upload-multiple?class_id=
+      const response = await fetch(`${API_BASE_URL}/files/upload-multiple?class_id=${encodeURIComponent(String(idClase))}`, {
         method: 'POST',
+        // No establecer Content-Type para multipart/form-data
         headers: {
           'ngrok-skip-browser-warning': 'true',
         },
@@ -1001,7 +1008,12 @@ class ApiService {
 
   async obtenerFotoCaricaturaDocente(idDocente: number): Promise<FotoCaricaturaResponse> {
     try {
-      return await this.fetchWithErrorHandling(`/docentes/${idDocente}/foto-caricatura`);
+      const resp = await this.fetchWithErrorHandling(`/docentes/${idDocente}`);
+      // resp puede ser DocenteResponseDTO
+      return {
+        foto_caricatura: (resp && (resp as any).foto_caricatura) || (resp && (resp as any).foto) || '/images/default-teacher-cartoon-avatar.png',
+        nombre_docente: (resp && (resp as any).nombre) || 'Docente',
+      };
     } catch (error) {
       console.warn('API not available for foto caricatura:', error);
       // Retornar valores predeterminados en caso de error
@@ -1299,35 +1311,60 @@ class ApiService {
 
   // Listar archivos de una clase
   async getArchivos(idClase: number, tipo?: 'Subido' | 'Generado'): Promise<ArchivosResponse> {
-    const url = `/clases/${idClase}/archivos${tipo ? `?tipo=${tipo}` : ''}`;
-    return this.fetchWithErrorHandling(url);
+    // El service de archivos expone /files/list que acepta un prefijo
+    const prefix = `uploaded/class/${idClase}/`;
+    try {
+      const res = await this.fetchWithErrorHandling(`/files/list?prefix=${encodeURIComponent(prefix)}`);
+      const files: ArchivoInfo[] = (res.files || []).map((key: string, idx: number) => {
+        const parts = key.split('/');
+        const filename = parts[parts.length - 1];
+        return {
+          id: idx + 1,
+          filename,
+          tipo: 'Subido',
+          size: 0,
+          download_url: `${API_BASE_URL}/files/url?path=${encodeURIComponent('/' + key)}`,
+        };
+      });
+
+      return {
+        id_clase: idClase,
+        filtro_tipo: tipo,
+        archivos: files,
+        total_archivos: files.length,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Descargar archivo específico de una clase
   async downloadFileFromClass(idClase: number, filename: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/clases/${idClase}/archivos/${filename}/download`, {
+      // Obtener URL prefirmada desde /files/url
+      const resp = await fetch(`${API_BASE_URL}/files/url?path=${encodeURIComponent(`/uploaded/class/${idClase}/${filename}`)}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/octet-stream',
           'ngrok-skip-browser-warning': 'true',
         },
         mode: 'cors',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!resp.ok) {
+        const et = await resp.text();
+        throw new Error(`HTTP error getting file url: ${resp.status} - ${et}`);
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const data = await resp.json();
+      const url = data.url;
+      if (!url) throw new Error('No presigned URL returned');
+
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download Error:', error);
       throw error;
@@ -1336,7 +1373,8 @@ class ApiService {
 
   // Eliminar archivo de una clase
   async deleteFile(idClase: number, filename: string): Promise<DeleteFileResponse> {
-    return this.fetchWithErrorHandling(`/clases/${idClase}/archivos/${filename}`, {
+    const path = `/uploaded/class/${idClase}/${filename}`;
+    return this.fetchWithErrorHandling(`/files/delete?path=${encodeURIComponent(path)}`, {
       method: 'DELETE',
     });
   }
@@ -1388,7 +1426,7 @@ class ApiService {
 
   // Obtener clases de un estudiante
   async getClasesEstudiante(idEstudiante: number, incluirInactivas: boolean = false): Promise<EstudianteClaseDetalleDTO[]> {
-    const url = `/estudiantes/${idEstudiante}/clases${incluirInactivas ? '?incluir_inactivas=true' : ''}`;
+    const url = `/estudiante-clase/${idEstudiante}/clases${incluirInactivas ? '?incluir_inactivas=true' : ''}`;
     return this.fetchWithErrorHandling(url);
   }
 
@@ -1465,13 +1503,22 @@ class ApiService {
       };
 
       console.log('Enviando datos de apoyo psicopedagógico:', normalizedData);
-      
-      const response = await fetch(`${API_BASE_URL}/api/psicopedagogico/apoyo/${estudianteId}`, {
+
+      const payload = {
+        perfil_cognitivo: normalizedData.perfil_cognitivo,
+        perfil_personalidad: normalizedData.perfil_personalidad,
+        nivel_conocimientos: normalizedData.nivel_conocimientos,
+        id_clase: normalizedData.id_clase,
+        historial_mensajes: [],
+        mensaje_actual: normalizedData.mensaje_usuario,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/chat-general/${estudianteId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(normalizedData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -1509,14 +1556,23 @@ class ApiService {
         objetivos_especificos: objetivosEspecificos
       };
 
-      console.log('Enviando datos para plan de estudio:', requestData);
-      
-      const response = await fetch(`${API_BASE_URL}/api/psicopedagogico/plan-estudio/${estudianteId}`, {
+      console.log('Enviando datos para plan de estudio (chat-general):', requestData);
+
+      const payload = {
+        perfil_cognitivo: requestData.perfil_cognitivo,
+        perfil_personalidad: requestData.perfil_personalidad,
+        nivel_conocimientos: requestData.nivel_conocimientos,
+        id_clase: requestData.id_clase,
+        historial_mensajes: [],
+        mensaje_actual: requestData.mensaje_usuario,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/chat-general/${estudianteId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -1556,12 +1612,22 @@ class ApiService {
 
       console.log('Enviando datos para evaluación de comprensión:', requestData);
       
-      const response = await fetch(`${API_BASE_URL}/api/psicopedagogico/evaluacion/${estudianteId}`, {
+      const payload = {
+        perfil_cognitivo: requestData.perfil_cognitivo,
+        perfil_personalidad: requestData.perfil_personalidad,
+        nivel_conocimientos: requestData.nivel_conocimientos,
+        id_clase: requestData.id_clase,
+        historial_mensajes: [],
+  // incluir las respuestas del estudiante en el mensaje actual para que el modelo las evalúe
+  mensaje_actual: JSON.stringify({ respuestas: requestData.respuestas_estudiante }),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/chat-general/${estudianteId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -1584,12 +1650,17 @@ class ApiService {
   async generarFlashcards(estudianteId: number, idClase: number): Promise<FlashcardsResponseDTO> {
     try {
       console.log(`Generando flashcards para estudiante ${estudianteId} en clase ${idClase}`);
-      
-      const response = await fetch(`${API_BASE_URL}/clases/${idClase}/estudiantes/${estudianteId}/flashcards`, {
+      const payload = {
+        clase_info: { id: idClase },
+        tipo_recurso: 'flashcards',
+      };
+
+      const response = await fetch(`${API_BASE_URL}/generative-ai/chat/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
