@@ -24,12 +24,14 @@ interface ChatModalProps {
   docentePhoto?: string; // URL
 }
 
+console.log("asdasdasdasdsa==============================", process.env.S3_BUCKET_BASE_URL)
+
 export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, classId, docenteName = 'Docente', docentePhoto }) => {
   const normalizeApiUrl = (maybeUrl?: string | null) => {
     if (!maybeUrl) return undefined;
     const url = String(maybeUrl);
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const base = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
+    const base = (process.env.S3_BUCKET_BASE_URL || '').replace(/\/$/, '');
     if (!base) return url;
     return url.startsWith('/') ? `${base}${url}` : `${base}/${url}`;
   };
@@ -65,13 +67,14 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
         isAudioMessage: !!c.archivo,
       } as ChatMessage));
 
-      // Mostrar la conversación más reciente primero
-      const mappedReversed = mapped.slice().reverse();
-      setMessages(mappedReversed);
+      // Mostrar la conversación en orden cronológico (oldest-first)
+      setMessages(mapped);
 
-      // Si usamos newest-first, colocamos el scroll al inicio para mostrar lo más reciente
+      // Colocar el scroll al final para mostrar el mensaje más reciente
       setTimeout(() => {
-        if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = 0;
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
       }, 50);
     } catch (error) {
       console.error('Error cargando historial de chat:', error);
@@ -89,6 +92,12 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
     return 'visual';
   };
 
+  const perfilForBackend = (perfil: string) => {
+    if (!perfil) return 'Visual';
+    const p = String(perfil).toLowerCase();
+    return p.charAt(0).toUpperCase() + p.slice(1);
+  };
+
   const sendText = async () => {
     if (!input.trim() || !student) return;
     const userMsg: ChatMessage = {
@@ -98,25 +107,26 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
       timestamp: new Date(),
     };
 
-  // Prepend so the newest messages appear first
-  setMessages(prev => [userMsg, ...prev]);
+  // Append so the newest messages appear at the bottom
+  setMessages(prev => [...prev, userMsg]);
     setInput('');
 
     setIsSending(true);
     try {
       // NOTE: backend registra automáticamente la conversación del estudiante y la respuesta del chatbot.
       // Enviar request al endpoint que genera la respuesta (el backend hará los inserts necesarios y devolverá metadata)
-      const requestData: ChatGeneralRequestDTO = {
-        perfil_cognitivo: normalizePerfil(student.perfil_cognitivo) as any,
+      const perfilNormalized = normalizePerfil(student.perfil_cognitivo);
+      const requestPayload = {
+        perfil_cognitivo: perfilForBackend(perfilNormalized),
         perfil_personalidad: student.perfil_personalidad || 'Equilibrado',
-        nivel_conocimientos: 'basico',
+        nivel_conocimientos: 'Secundaria',
         id_clase: Number(classId),
-  // messages are stored newest-first in this component, but the API expects chronological order (oldest-first)
-  historial_mensajes: messages.slice().reverse().map(m => ({ tipo: m.type, contenido: m.content })),
+        // messages are stored oldest-first in this component; send them as-is
+        historial_mensajes: messages.map(m => ({ tipo: m.type, contenido: m.content })),
         mensaje_actual: userMsg.content,
-      };
+      } as any;
 
-      const response = await apiService.chatGeneralPersonalizado(student.id, requestData);
+      const response = await apiService.chatGeneralPersonalizado(student.id, requestPayload);
       const botText = (response as any).contenido_generado || (response as any).contenido || response;
 
       // Construir el mensaje del bot en el frontend. Para id y timestamps confiamos en la BD; si el backend devuelve conversacion_id lo usamos
@@ -141,10 +151,10 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
         }
       }
 
-  setMessages(prev => [botMessage, ...prev]);
+  setMessages(prev => [...prev, botMessage]);
 
-  // show the new bot response at top
-  setTimeout(() => { if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = 0; }, 50);
+  // show the new bot response at bottom
+  setTimeout(() => { if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight; }, 50);
     } catch (error) {
       console.error('Error enviando mensaje de chat:', error);
     } finally {
@@ -182,7 +192,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
           isAudioMessage: true,
         };
 
-  setMessages(prev => [provisionalMsg, ...prev]);
+  setMessages(prev => [...prev, provisionalMsg]);
 
         setIsSending(true);
         try {
@@ -202,17 +212,18 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
           setMessages(prev => prev.map(m => m.id === provisionalMsg.id ? ({ ...m, content: transcript || m.content, audioUrl }) : m));
 
           // Procesar igual que un mensaje de texto: llamar al endpoint que genera la respuesta (el backend hará los inserts)
-          const requestData: ChatGeneralRequestDTO = {
-            perfil_cognitivo: normalizePerfil(student!.perfil_cognitivo) as any,
+          const perfilNormalized2 = normalizePerfil(student!.perfil_cognitivo);
+          const requestPayload2 = {
+            perfil_cognitivo: perfilForBackend(perfilNormalized2),
             perfil_personalidad: student!.perfil_personalidad || 'Equilibrado',
-            nivel_conocimientos: 'basico',
+            nivel_conocimientos: 'Secundaria',
             id_clase: Number(classId),
-            // messages are newest-first; send oldest-first to the API
-            historial_mensajes: messages.slice().reverse().map(m => ({ tipo: m.type, contenido: m.content })),
+            // messages are oldest-first; send them as-is
+            historial_mensajes: messages.map(m => ({ tipo: m.type, contenido: m.content })),
             mensaje_actual: transcript || '',
-          };
+          } as any;
 
-          const response = await apiService.chatGeneralPersonalizado(student!.id, requestData);
+          const response = await apiService.chatGeneralPersonalizado(student!.id, requestPayload2);
           const botText = (response as any).contenido_generado || (response as any).contenido || response;
 
           const botMessage: ChatMessage = {
@@ -235,10 +246,10 @@ export const ChatModal: React.FC<ChatModalProps> = ({ show, onClose, student, cl
             }
           }
 
-          setMessages(prev => [botMessage, ...prev]);
+          setMessages(prev => [...prev, botMessage]);
 
-          // ensure newest is visible
-          setTimeout(() => { if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = 0; }, 50);
+          // ensure newest is visible (scroll to bottom)
+          setTimeout(() => { if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight; }, 50);
 
         } catch (error) {
           console.error('Error en STT o procesamiento:', error);

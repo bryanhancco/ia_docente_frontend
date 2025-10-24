@@ -18,6 +18,15 @@ export default function ContenidoClaseTab({
   loadingContenido,
   iniciarClase
 }: ContenidoClaseTabProps) {
+  // Normalizar y proteger el porcentaje para evitar llamar `toFixed` sobre undefined
+  const porcentaje = (() => {
+    const raw = claseInteractiva?.porcentaje_completado;
+    // Intentar convertir a número si viene como string
+    const num = typeof raw === 'number' ? raw : Number(raw ?? 0);
+    if (Number.isNaN(num)) return 0;
+    // Asegurar rango entre 0 y 100
+    return Math.max(0, Math.min(100, num));
+  })();
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="text-center">
@@ -34,11 +43,11 @@ export default function ContenidoClaseTab({
                 <div className="bg-blue-200 rounded-full h-2">
                   <div 
                     className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${claseInteractiva.porcentaje_completado}%` }}
+                    style={{ width: `${porcentaje}%` }}
                   ></div>
                 </div>
                 <p className="text-sm text-blue-700 mt-1">
-                  {claseInteractiva.porcentaje_completado.toFixed(1)}% completado
+                  {porcentaje.toFixed(1)}% completado
                 </p>
               </div>
             </div>

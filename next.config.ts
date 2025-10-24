@@ -4,10 +4,12 @@ const nextConfig: NextConfig = {
   /* config options here */
   env: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    S3_BUCKET_BASE_URL: process.env.S3_BUCKET_BASE_URL
   },
   // Asegurar que las variables de entorno se exporten al cliente
   publicRuntimeConfig: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+    S3_BUCKET_BASE_URL: process.env.S3_BUCKET_BASE_URL
   },
 };
 

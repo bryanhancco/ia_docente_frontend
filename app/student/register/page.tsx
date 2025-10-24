@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiService, EstudianteCreateDTO, EstudianteResponseDTO } from '../../lib/api';
@@ -19,6 +19,9 @@ export default function StudentRegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registeredStudent, setRegisteredStudent] = useState<EstudianteResponseDTO | null>(null);
+  const [perfilStatus, setPerfilStatus] = useState<{ perfil_cognitivo: boolean; perfil_personalidad: boolean; completo: boolean } | null>(null);
+  const [perfilLoading, setPerfilLoading] = useState(false);
+  const [perfilError, setPerfilError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<EstudianteCreateDTO>({
     nombre: '',
@@ -86,6 +89,37 @@ export default function StudentRegisterPage() {
       router.push('/student/login');
     }, 3000);
   };
+
+  // Cuando el estudiante está registrado, consultar el backend si los perfiles están completos
+  useEffect(() => {
+    let mounted = true;
+    const id = registeredStudent?.id;
+    if (!id) {
+      setPerfilStatus(null);
+      return;
+    }
+
+    setPerfilLoading(true);
+    setPerfilError(null);
+    setPerfilStatus(null);
+
+    apiService.checkPerfilCompleto(id)
+      .then((res) => {
+        if (!mounted) return;
+        setPerfilStatus(res);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        console.error('Error fetching perfil status:', err);
+        setPerfilError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setPerfilLoading(false);
+      });
+
+    return () => { mounted = false; };
+  }, [registeredStudent?.id]);
 
   const renderBasicInfoStep = () => (
     <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border border-white/20 p-8">
@@ -390,22 +424,51 @@ export default function StudentRegisterPage() {
             <h3 className="text-lg font-bold text-gray-800">Estado de Formularios</h3>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 py-2 px-3 bg-white/50 rounded-lg">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                </svg>
+            {perfilLoading ? (
+              <div className="flex items-center gap-3 py-2 px-3 bg-white/50 rounded-lg">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium text-gray-700">Comprobando estado de formularios...</span>
               </div>
-              <span className="text-sm font-medium text-gray-700">Perfil Cognitivo: Completado</span>
-            </div>
-            <div className="flex items-center gap-3 py-2 px-3 bg-white/50 rounded-lg">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                </svg>
+            ) : perfilError ? (
+              <div className="flex items-center gap-3 py-2 px-3 bg-red-50 rounded-lg">
+                <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.536-10.536a1 1 0 10-1.414-1.414L10 8.586 7.878 6.464a1 1 0 10-1.414 1.414L8.586 10l-2.122 2.122a1 1 0 101.414 1.414L10 11.414l2.122 2.122a1 1 0 001.414-1.414L11.414 10l2.122-2.122z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-red-700">Error: {perfilError}</span>
               </div>
-              <span className="text-sm font-medium text-gray-700">Perfil de Personalidad: Completado</span>
-            </div>
+            ) : perfilStatus ? (
+              <>
+                <div className="flex items-center gap-3 py-2 px-3 bg-white/50 rounded-lg">
+                  <div className={`w-6 h-6 ${perfilStatus.perfil_cognitivo ? 'bg-green-500' : 'bg-gray-300'} rounded-full flex items-center justify-center`}>
+                    {perfilStatus.perfil_cognitivo ? (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm2.121-11.879a1 1 0 10-1.414-1.414L10 8.586 9.293 7.879a1 1 0 10-1.414 1.414L8.586 10l-2.707 2.707a1 1 0 001.414 1.414L10 11.414l2.707 2.707a1 1 0 001.414-1.414L11.414 10l2.707-2.707z" clipRule="evenodd"/></svg>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Perfil Cognitivo: {perfilStatus.perfil_cognitivo ? 'Completado' : 'Incompleto'}</span>
+                </div>
+
+                <div className="flex items-center gap-3 py-2 px-3 bg-white/50 rounded-lg">
+                  <div className={`w-6 h-6 ${perfilStatus.perfil_personalidad ? 'bg-green-500' : 'bg-gray-300'} rounded-full flex items-center justify-center`}>
+                    {perfilStatus.perfil_personalidad ? (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm2.121-11.879a1 1 0 10-1.414-1.414L10 8.586 9.293 7.879a1 1 0 10-1.414 1.414L8.586 10l-2.707 2.707a1 1 0 001.414 1.414L10 11.414l2.707 2.707a1 1 0 001.414-1.414L11.414 10l2.707-2.707z" clipRule="evenodd"/></svg>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Perfil de Personalidad: {perfilStatus.perfil_personalidad ? 'Completado' : 'Incompleto'}</span>
+                </div>
+
+                {perfilStatus.completo && (
+                  <div className="text-sm text-green-700 font-medium">Todos los formularios completos</div>
+                )}
+              </>
+            ) : (
+              <div className="text-sm text-gray-600">Aún no se ha registrado o no hay información disponible.</div>
+            )}
           </div>
         </div>
       </div>

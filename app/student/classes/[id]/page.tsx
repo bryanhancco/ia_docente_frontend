@@ -145,22 +145,26 @@ export default function ClassDetailPage() {
     try {
       const data = await apiService.getClase(Number(classId));
       setClassData(data);
-
-      // Cargar contenidos generados de la clase
-      /*
-      try {
-        const contentsData = await apiService.getContenidos(Number(classId));
-        setContents(contentsData);
-      } catch (error) {
-        console.log('No hay contenidos generados aún');
-      }
-      */
-
-      // Cargar foto caricatura del docente
       try {
         const fotoResponse = await apiService.obtenerFotoCaricaturaDocente(data.id_docente);
-        setFotoCaricaturaDocente(fotoResponse.foto_caricatura);
-        setNombreDocente(fotoResponse.nombre_docente);
+        // fotoResponse may already include a fallback, but be defensive here
+        const DEFAULT_CARTOON = '/images/default-teacher-cartoon-avatar.png';
+        let foto = fotoResponse.foto_caricatura;
+        let nombre = fotoResponse.nombre_docente;
+
+        if (!foto || foto === DEFAULT_CARTOON) {
+          try {
+            const docenteFull = await apiService.getDocente(data.id_docente);
+            foto = (docenteFull && (docenteFull as any).foto) || foto || DEFAULT_CARTOON;
+            nombre = (docenteFull && (docenteFull as any).nombre) || nombre || 'Docente';
+          } catch (err) {
+            // keep previous foto/nombre if fetching docente fails
+            // console.warn('No se pudo obtener docente para foto normal:', err);
+          }
+        }
+
+        setFotoCaricaturaDocente(foto);
+        setNombreDocente(nombre);
       } catch (error) {
         console.log('No se pudo cargar la foto del docente');
       }
@@ -491,9 +495,16 @@ export default function ClassDetailPage() {
     if (!perfil) return 'visual';
     const normalized = perfil.toLowerCase();
     const validProfiles: PerfilCognitivoType[] = ['visual', 'auditivo', 'lector', 'kinestesico'];
-    return validProfiles.includes(normalized as PerfilCognitivoType) 
-      ? normalized as PerfilCognitivoType 
+    return validProfiles.includes(normalized as PerfilCognitivoType)
+      ? (normalized as PerfilCognitivoType)
       : 'visual';
+  };
+
+  const perfilForBackend = (perfil: PerfilCognitivoType | string) => {
+    // Convert 'visual' -> 'Visual', etc. Backend expects capitalized enum strings.
+    if (!perfil) return 'Visual';
+    const p = String(perfil).toLowerCase();
+    return p.charAt(0).toUpperCase() + p.slice(1);
   };
 
   const sendMessage = async () => {
@@ -511,19 +522,19 @@ export default function ClassDetailPage() {
     setIsTyping(true);
 
     try {
-      const requestData: ChatGeneralRequestDTO = {
-        perfil_cognitivo: normalizePerfil(student.perfil_cognitivo),
+      // Build request payload adapted to backend enum expectations
+      const perfilNormalized = normalizePerfil(student.perfil_cognitivo);
+      const requestPayload = {
+        perfil_cognitivo: perfilForBackend(perfilNormalized), // e.g. 'Visual'
         perfil_personalidad: student.perfil_personalidad || 'Equilibrado',
-        nivel_conocimientos: 'basico',
+        // Backend expects education level: 'Primaria'|'Secundaria'|'Pregrado'|'Posgrado'
+        nivel_conocimientos: 'Secundaria',
         id_clase: Number(classId),
-        historial_mensajes: chatMessages.map(msg => ({
-          tipo: msg.type,
-          contenido: msg.content
-        })),
-        mensaje_actual: currentMessage
-      };
+        historial_mensajes: chatMessages.map(msg => ({ tipo: msg.type, contenido: msg.content })),
+        mensaje_actual: currentMessage,
+      } as any;
 
-      const response = await apiService.chatGeneralPersonalizado(student.id, requestData);
+      const response = await apiService.chatGeneralPersonalizado(student.id, requestPayload);
       
       const botMessage = {
         id: (Date.now() + 1).toString(),
@@ -861,11 +872,11 @@ export default function ClassDetailPage() {
         >
           <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
             <img 
-              src={fotoCaricaturaDocente} 
+              src={`https://lfl-devstream.s3.us-east-2.amazonaws.com${fotoCaricaturaDocente}`} 
               alt={`Foto de ${nombreDocente}`}
               className="w-full h-full object-cover rounded-lg"
               onError={(e) => {
-                e.currentTarget.src = 'http://localhost:8000/public/images/caric.jpeg';
+                console.log(e)
               }}
             />
           </div>

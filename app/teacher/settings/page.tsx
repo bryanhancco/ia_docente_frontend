@@ -52,7 +52,7 @@ export default function SettingsPage() {
         // Cargar foto actual si existe
         if (docenteData.foto) {
           // La URL ya incluye la ruta completa desde el backend
-          setCurrentPhotoUrl(`http://localhost:8000${docenteData.foto}`);
+          setCurrentPhotoUrl(`https://lfl-devstream.s3.amazonaws.com${docenteData.foto}`);
         }
       } catch (error) {
         console.error('Error loading teacher data:', error);
@@ -122,7 +122,10 @@ export default function SettingsPage() {
         correo: formData.email
       };
 
-      await apiService.updateDocente(docente.id, updateData);
+      const updated = await apiService.updateDocente(docente.id, updateData);
+      // Refresh local state with the updated docente
+      setDocente(updated);
+      setFormData(prev => ({ ...prev, nombre: updated.nombre, email: updated.correo }));
       setSuccess('Perfil actualizado correctamente');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -178,7 +181,7 @@ export default function SettingsPage() {
       setDocente(updatedDocente);
       
       if (updatedDocente.foto) {
-        setCurrentPhotoUrl(`http://localhost:8000${updatedDocente.foto}`);
+        setCurrentPhotoUrl(`https://lfl-devstream.s3.amazonaws.com${updatedDocente.foto}`);
       }
       
       // Limpiar la vista previa

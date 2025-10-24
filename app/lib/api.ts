@@ -1416,6 +1416,11 @@ class ApiService {
     return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}`);
   }
 
+  // Verificar si los datos de perfil del estudiante están completos
+  async checkPerfilCompleto(idEstudiante: number): Promise<{ perfil_cognitivo: boolean; perfil_personalidad: boolean; completo: boolean }> {
+    return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}/perfil-completo`);
+  }
+
   // Actualizar estudiante
   async updateEstudiante(idEstudiante: number, data: EstudianteUpdateDTO): Promise<EstudianteResponseDTO> {
     return this.fetchWithErrorHandling(`/estudiantes/${idEstudiante}`, {
@@ -1854,7 +1859,7 @@ class ApiService {
 
   // Crear nueva nota
   async crearNota(estudianteId: number, notas: string): Promise<NotaResponseDTO> {
-    return this.fetchWithErrorHandling(`/estudiantes/${estudianteId}/notas`, {
+    return this.fetchWithErrorHandling(`/notas/estudiantes/${estudianteId}`, {
       method: 'POST',
       body: JSON.stringify({ id_estudiante: estudianteId, notas }),
     });
@@ -1862,7 +1867,7 @@ class ApiService {
 
   // Obtener notas de un estudiante
   async obtenerNotasEstudiante(estudianteId: number): Promise<NotaResponseDTO[]> {
-    return this.fetchWithErrorHandling(`/estudiantes/${estudianteId}/notas`);
+    return this.fetchWithErrorHandling(`/notas/estudiantes/${estudianteId}`);
   }
 
   // Actualizar una nota
@@ -1923,21 +1928,25 @@ class ApiService {
 
   // Text-to-Speech (TTS)
   async textToSpeech(idClase: number, data: TTSRequestDTO): Promise<TTSResponseDTO> {
-    const formData = new FormData();
-    formData.append('text', data.text);
-    // Si se proporciona, agregar el id de la conversación para que el backend pueda actualizar la columna 'archivo'
-    if (data.conversacion_id !== undefined && data.conversacion_id !== null) {
-      formData.append('conversacion_id', data.conversacion_id.toString());
-    }
-    if (data.voice_model) formData.append('voice_model', data.voice_model);
-    if (data.save_to_db !== undefined) formData.append('save_to_db', data.save_to_db.toString());
+    // El backend espera un JSON con { id_clase: number, text: string, ... }
+    const payload: any = {
+      id_clase: idClase,
+      text: data.text,
+    };
 
-    const response = await fetch(`${API_BASE_URL}/audio/text-to-speech/${idClase}`, {
+    if (data.conversacion_id !== undefined && data.conversacion_id !== null) {
+      payload.conversacion_id = data.conversacion_id;
+    }
+    if (data.voice_model) payload.voice_model = data.voice_model;
+    if (data.save_to_db !== undefined) payload.save_to_db = data.save_to_db;
+
+    const response = await fetch(`${API_BASE_URL}/generative-ai/audio/tts`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
       },
-      body: formData,
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
