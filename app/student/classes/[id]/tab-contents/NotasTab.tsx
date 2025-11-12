@@ -35,7 +35,7 @@ export default function NotasTab({
       
       {/* Crear nueva nota */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Crear nueva nota</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Crear nuevo apunte</h3>
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
           <textarea
             value={nuevaNota}
@@ -52,7 +52,7 @@ export default function NotasTab({
               disabled={!nuevaNota.trim()}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              ✨ Agregar Nota
+              ✨ Agregar Apunte
             </button>
           </div>
         </div>
@@ -60,17 +60,17 @@ export default function NotasTab({
 
       {/* Lista de notas */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Mis notas guardadas</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Mis apuntes guardadas</h3>
         {loadingNotas ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando notas...</p>
+            <p className="text-gray-600">Cargando apuntes...</p>
           </div>
         ) : notas.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <div className="text-6xl mb-4">📝</div>
-            <h4 className="text-lg font-semibold mb-2">No tienes notas aún</h4>
-            <p>¡Crea tu primera nota para empezar a organizar tus apuntes!</p>
+            <h4 className="text-lg font-semibold mb-2">No tienes apuntes aún</h4>
+            <p>¡Crea tu primer apunte para empezar a organizar tus apuntes!</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -115,7 +115,7 @@ export default function NotasTab({
                           {index + 1}
                         </div>
                         <span className="text-sm text-gray-500 font-medium">
-                          Nota #{index + 1}
+                          Apunte #{index + 1}
                         </span>
                       </div>
                       <div className="flex gap-2">
@@ -131,12 +131,12 @@ export default function NotasTab({
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm('¿Estás seguro de que quieres eliminar esta nota?')) {
+                            if (window.confirm('¿Estás seguro de que quieres eliminar este apunte?')) {
                               eliminarNota(nota.id);
                             }
                           }}
                           className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                          title="Eliminar nota"
+                          title="Eliminar apunte"
                         >
                           🗑️ Eliminar
                         </button>

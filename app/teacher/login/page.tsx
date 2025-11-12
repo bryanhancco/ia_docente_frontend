@@ -24,21 +24,56 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    // Clear previous error
     setError(null);
 
+    // Client-side validation
+    const correo = formData.correo?.trim();
+    const password = formData.password?.trim();
+    if (!correo || !password) {
+      setError('Por favor ingresa correo y contraseña');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const response = await apiService.loginDocente(formData);
-      
+
       // Store user data in localStorage with the correct key
       localStorage.setItem('userData', JSON.stringify(response.docente));
-      console.log(JSON.stringify(response.docente))
-      
+      console.log(JSON.stringify(response.docente));
+
       // Redirect to dashboard
       router.push('/teacher/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      setError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+    } catch (err) {
+      console.error('Login error:', err);
+
+      // Parse server error to show friendly messages
+      let friendly = 'Error al iniciar sesión';
+      if (err instanceof Error && err.message) {
+        const msg = err.message;
+        const jsonMatch = msg.match(/\{[\s\S]*\}$/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed && typeof parsed.detail === 'string') {
+              if (parsed.detail.includes('Credenciales inválidas') || parsed.detail.toLowerCase().includes('credenciales')) {
+                friendly = 'Datos incorrectos';
+              } else {
+                friendly = parsed.detail;
+              }
+            }
+          } catch (parseErr) {
+            // ignore
+          }
+        } else if (msg.includes('status: 401')) {
+          friendly = 'Datos incorrectos';
+        } else {
+          friendly = msg;
+        }
+      }
+
+      setError(friendly);
     } finally {
       setIsLoading(false);
     }

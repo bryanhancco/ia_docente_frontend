@@ -12,16 +12,25 @@ export default function StudentDashboardPage() {
   useEffect(() => {
     // Check if user is logged in
     const studentDataString = localStorage.getItem('studentData');
-    if (!studentDataString) {
+    // Defensive checks: localStorage may contain the literal string "undefined" or malformed JSON.
+    if (!studentDataString || studentDataString === 'undefined' || studentDataString.trim() === '') {
+      // Clean up any invalid value and send user to login
+      localStorage.removeItem('studentData');
       router.push('/student/login');
       return;
     }
 
     try {
-      const studentData: EstudianteResponseDTO = JSON.parse(studentDataString);
+      const parsed = JSON.parse(studentDataString);
+      // Ensure parsed object looks like an EstudianteResponseDTO (basic shape check)
+      if (!parsed || typeof parsed !== 'object' || !('id' in parsed)) {
+        throw new Error('Invalid student data shape');
+      }
+      const studentData: EstudianteResponseDTO = parsed as EstudianteResponseDTO;
       setStudent(studentData);
     } catch (error) {
       console.error('Error parsing student data:', error);
+      localStorage.removeItem('studentData');
       router.push('/student/login');
     }
   }, [router]);

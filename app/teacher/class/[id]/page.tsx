@@ -84,29 +84,6 @@ export default function ClassDetailPage() {
         const claseData = await apiService.getClase(parseInt(id as string));
         setClase(claseData);
 
-        // Si la clase tiene un formulario asociado, obtener sus datos
-        if (claseData.id_formulario) {
-          try {
-            const formularioData = await apiService.getFormulario(claseData.id_formulario);
-            setCurrentFormulario(formularioData);
-          } catch (error) {
-            console.error('Error fetching formulario data:', error);
-            // Si no se puede obtener el formulario, usar datos mock para desarrollo
-            const mockFormularioData: FormularioResponseDTO = {
-              id: claseData.id_formulario,
-              enlace: 'https://forms.example.com/estudiantes/1',
-              cantidad_visual: 15,
-              cantidad_auditivo: 8,
-              cantidad_lector: 12,
-              cantidad_kinestesico: 5,
-              fecha_creacion: '2024-01-15T10:00:00Z',
-              fecha_cierre: '2024-01-30T23:59:59Z',
-              estado: true
-            };
-            setCurrentFormulario(mockFormularioData);
-          }
-        }
-
         // Obtener los contenidos generados para esta clase
         try {
           const contenidosData = await apiService.getContenidos(parseInt(id as string));
@@ -304,26 +281,6 @@ export default function ClassDetailPage() {
     }
 
     return structure;
-  };
-
-  const downloadAsPDF = async (contenido: ContenidoGenerado) => {
-    if (processingPDF) return; // Evitar múltiples descargas simultáneas
-    
-    try {
-      setProcessingPDF(true);
-      console.log('Iniciando conversión de HTML a PDF...');
-      await apiService.downloadContentAsPDF(contenido);
-      console.log('Conversión completada exitosamente');
-    } catch (error) {
-      console.error('Error downloading content as PDF:', error);
-      if (error instanceof Error && error.message.includes('Se descargó como HTML')) {
-        alert('No se pudo convertir a PDF. El contenido se descargó como archivo HTML.');
-      } else {
-        alert('Error al procesar el contenido para descarga. Por favor, intente nuevamente.');
-      }
-    } finally {
-      setProcessingPDF(false);
-    }
   };
 
   const downloadArchivo = async (archivo: ArchivoInfo) => {
@@ -825,25 +782,6 @@ export default function ClassDetailPage() {
                                   Generada el {getFormattedDate(contenido.created_at)}
                                 </p>
                               </div>
-                              <button
-                                onClick={() => downloadAsPDF(contenido)}
-                                disabled={processingPDF}
-                                className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                              >
-                                {processingPDF ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    Procesando...
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
-                                      <path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0ZM101.66,122.34a8,8,0,0,0,11.31,0L128,107.31V184a8,8,0,0,0,16,0V107.31l15.03,15.03a8,8,0,0,0,11.31-11.31l-28.68-28.68a8,8,0,0,0-11.32,0L101.66,111.03A8,8,0,0,0,101.66,122.34Z"/>
-                                    </svg>
-                                    Descargar PDF
-                                  </>
-                                )}
-                              </button>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-4">
                               <div className="whitespace-pre-line text-[#0d141c] text-sm leading-relaxed">
@@ -1031,25 +969,7 @@ export default function ClassDetailPage() {
                                 </span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <button
-                                  onClick={() => downloadAsPDF(contenido)}
-                                  disabled={processingPDF}
-                                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200"
-                                >
-                                  {processingPDF ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                      Procesando...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
-                                        <path d="M224,152v56a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V152a8,8,0,0,1,16,0v56H208V152a8,8,0,0,1,16,0ZM101.66,122.34a8,8,0,0,0,11.31,0L128,107.31V184a8,8,0,0,0,16,0V107.31l15.03,15.03a8,8,0,0,0,11.31-11.31l-28.68-28.68a8,8,0,0,0-11.32,0L101.66,111.03A8,8,0,0,0,101.66,122.34Z"/>
-                                      </svg>
-                                      Descargar PDF
-                                    </>
-                                  )}
-                                </button>
+
                                 <div className="text-xs text-gray-500 text-right">
                                   <div>Generado el</div>
                                   <div className="font-medium">{getFormattedDate(contenido.created_at)}</div>
@@ -1248,25 +1168,6 @@ export default function ClassDetailPage() {
                                 Generada el {getFormattedDate(contenido.created_at)}
                               </p>
                             </div>
-                            <button
-                              onClick={() => downloadAsPDF(contenido)}
-                              disabled={processingPDF}
-                              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
-                            >
-                              {processingPDF ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                  Procesando...
-                                </>
-                              ) : (
-                                <>
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
-                                  </svg>
-                                  Descargar PDF
-                                </>
-                              )}
-                            </button>
                           </div>
                           <div className="backdrop-blur-md bg-gray-50/80 rounded-xl p-4">
                             <div className="whitespace-pre-line text-gray-800 text-sm leading-relaxed">
@@ -1285,25 +1186,6 @@ export default function ClassDetailPage() {
                             <h3 className="text-gray-800 text-lg font-semibold">Estructura Visual de Clase</h3>
                             <p className="text-gray-600 text-sm">Plan pedagógico interactivo</p>
                           </div>
-                          <button
-                            onClick={() => downloadAsPDF(contenido)}
-                            disabled={processingPDF}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
-                          >
-                            {processingPDF ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Procesando...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
-                                </svg>
-                                Descargar PDF
-                              </>
-                            )}
-                          </button>
                         </div>
                         <div className="backdrop-blur-md bg-gray-50/80 rounded-xl p-4">
                           <p className="text-gray-700 text-sm">Estructura detallada disponible para descarga</p>

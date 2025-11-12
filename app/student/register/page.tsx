@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { apiService, EstudianteCreateDTO, EstudianteResponseDTO } from '../../lib/api';
@@ -22,6 +22,9 @@ export default function StudentRegisterPage() {
   const [perfilStatus, setPerfilStatus] = useState<{ perfil_cognitivo: boolean; perfil_personalidad: boolean; completo: boolean } | null>(null);
   const [perfilLoading, setPerfilLoading] = useState(false);
   const [perfilError, setPerfilError] = useState<string | null>(null);
+  // Polling refs / state for re-verification
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
   
   const [formData, setFormData] = useState<EstudianteCreateDTO>({
     nombre: '',
@@ -78,12 +81,18 @@ export default function StudentRegisterPage() {
   };
 
   const handleCompleteRegistration = () => {
+    // Ensure the perfil status is completo before finishing
+    if (!perfilStatus || !perfilStatus.completo) {
+      setError('No puedes finalizar: los formularios aún no están completos. Usa "Re-verificar" hasta que aparezca "Todos los formularios completos".');
+      return;
+    }
+
     // Store user data in localStorage
     if (registeredStudent) {
       localStorage.setItem('studentData', JSON.stringify(registeredStudent));
     }
     setCurrentStep(RegistrationStep.COMPLETE);
-    
+
     // Auto redirect to login after 3 seconds
     setTimeout(() => {
       router.push('/student/login');
@@ -118,8 +127,73 @@ export default function StudentRegisterPage() {
         setPerfilLoading(false);
       });
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+      // Ensure any polling is stopped when leaving the view
+      if (pollRef.current) {
+        clearInterval(pollRef.current as any);
+        pollRef.current = null;
+      }
+      setIsPolling(false);
+    };
   }, [registeredStudent?.id]);
+
+  // Helper: stop polling
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current as any);
+      pollRef.current = null;
+    }
+    setIsPolling(false);
+  };
+
+  // Helper: single check of perfil status
+  const checkPerfilOnce = async (id: number) => {
+    setPerfilLoading(true);
+    setPerfilError(null);
+    try {
+      const res = await apiService.checkPerfilCompleto(id);
+      setPerfilStatus(res);
+      return res;
+    } catch (err) {
+      console.error('Error checking perfil once:', err);
+      setPerfilError(err instanceof Error ? err.message : String(err));
+      return null;
+    } finally {
+      setPerfilLoading(false);
+    }
+  };
+
+  // Start polling every 5s, stop when completo=true or after 60s
+  const startPolling = (id: number) => {
+    if (isPolling) return;
+    setIsPolling(true);
+    // Poll every 5s until backend reports completo === true
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await apiService.checkPerfilCompleto(id);
+        if (res) setPerfilStatus(res);
+        if (res && res.completo) {
+          stopPolling();
+          return;
+        }
+        // keep polling until completed; no artificial timeout
+      } catch (err) {
+        console.error('Polling error:', err);
+        // keep polling; show a non-blocking error message
+        setPerfilError(err instanceof Error ? err.message : String(err));
+      }
+    }, 5000);
+  };
+
+  const handleManualCheck = async () => {
+    if (!registeredStudent?.id) return;
+    const id = registeredStudent.id;
+    setPerfilError(null);
+    const res = await checkPerfilOnce(id);
+    if (res && res.completo) return;
+    startPolling(id);
+  };
 
   const renderBasicInfoStep = () => (
     <div className="backdrop-blur-md bg-white/60 rounded-2xl shadow-lg border border-white/20 p-8">
@@ -421,7 +495,19 @@ export default function StudentRegisterPage() {
                 <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
               </svg>
             </div>
-            <h3 className="text-lg font-bold text-gray-800">Estado de Formularios</h3>
+            <div className="flex-1 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-800">Estado de Formularios</h3>
+              <div>
+                <button
+                  type="button"
+                  onClick={handleManualCheck}
+                  disabled={isPolling || perfilLoading || !registeredStudent}
+                  className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isPolling ? 'Verificando...' : 'Re-verificar'}
+                </button>
+              </div>
+            </div>
           </div>
           <div className="space-y-3">
             {perfilLoading ? (
@@ -485,7 +571,9 @@ export default function StudentRegisterPage() {
         </button>
         <button
           onClick={handleCompleteRegistration}
-          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+          disabled={!perfilStatus?.completo}
+          title={!perfilStatus?.completo ? 'Los formularios no están completos. Usa "Re-verificar" hasta que aparezca "Todos los formularios completos".' : ''}
+          className={`flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl ${!perfilStatus?.completo ? 'opacity-50 cursor-not-allowed hover:from-green-600 hover:to-emerald-600' : ''}`}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
@@ -493,6 +581,11 @@ export default function StudentRegisterPage() {
           Finalizar Registro
         </button>
       </div>
+      {!perfilStatus?.completo && (
+        <div className="mt-3 text-sm text-gray-600">
+          Debes completar los formularios y presionar <span className="font-medium">Re-verificar</span> hasta que aparezca "Todos los formularios completos" antes de finalizar el registro.
+        </div>
+      )}
     </div>
   );
 

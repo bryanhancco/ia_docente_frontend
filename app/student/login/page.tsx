@@ -24,20 +24,59 @@ export default function StudentLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    // Clear previous errors
     setError(null);
 
+    // Client-side validation: ensure both correo and password are provided
+    const correo = formData.correo?.trim();
+    const password = formData.password?.trim();
+    if (!correo || !password) {
+      setError('Por favor ingresa correo y contraseña');
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const response = await apiService.loginEstudiante(formData);
-      
+
       // Store user data in localStorage
       localStorage.setItem('studentData', JSON.stringify(response.estudiante));
-      
+
       // Redirect to student dashboard
       router.push('/student/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      setError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+    } catch (err) {
+      console.error('Login error:', err);
+
+      // Try to extract friendly server message (common pattern: HTTP error! status: 401 - {"detail":"..."})
+      let friendly = 'Error al iniciar sesión';
+      if (err instanceof Error && err.message) {
+        const msg = err.message;
+
+        // JSON blob at the end like {"detail":"Credenciales inválidas"}
+        const jsonMatch = msg.match(/\{[\s\S]*\}$/);
+        if (jsonMatch) {
+          try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed && typeof parsed.detail === 'string') {
+              // Map server detail to friendly messages
+              if (parsed.detail.includes('Credenciales inválidas') || parsed.detail.toLowerCase().includes('credenciales')) {
+                friendly = 'Datos incorrectos';
+              } else {
+                friendly = parsed.detail;
+              }
+            }
+          } catch (parseErr) {
+            // ignore parse error
+          }
+        } else if (msg.includes('status: 401')) {
+          friendly = 'Datos incorrectos';
+        } else {
+          // fallback to the raw message for other errors
+          friendly = msg;
+        }
+      }
+
+      setError(friendly);
     } finally {
       setIsLoading(false);
     }
