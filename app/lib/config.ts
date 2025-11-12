@@ -10,7 +10,7 @@ const getEnvironmentConfig = (): EnvironmentConfig => {
   const isProduction = process.env.NODE_ENV === 'production';
   
   // URLs conocidas para diferentes entornos
-  const developmentUrl = 'http://localhost:8000';
+  const developmentUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
     
   let apiBaseUrl: string;
   
@@ -31,16 +31,6 @@ const getEnvironmentConfig = (): EnvironmentConfig => {
 };
 
 export const config = getEnvironmentConfig();
-
-// Función para validar que la URL de la API sea válida
-export const validateApiUrl = (url: string): boolean => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-  } catch {
-    return false;
-  }
-};
 
 // Función para obtener headers específicos según el entorno
 export const getEnvironmentHeaders = (): Record<string, string> => {

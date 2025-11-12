@@ -1,15 +1,8 @@
-import { config, validateApiUrl, getEnvironmentHeaders } from './config';
+import { config, getEnvironmentHeaders } from './config';
 
 // Configuración de la URL base de la API con debugging
 const getApiBaseUrl = () => {
-  const finalUrl = config.apiBaseUrl;
-  
-  if (!validateApiUrl(finalUrl)) {
-    console.error('❌ Invalid API URL detected:', finalUrl);
-    throw new Error(`Invalid API URL: ${finalUrl}`);
-  }
-  
-  return finalUrl;
+  return config.apiBaseUrl;
 };
 
 const API_BASE_URL = getApiBaseUrl();
