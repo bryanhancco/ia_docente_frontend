@@ -386,7 +386,7 @@ class ApiService {
   // Docentes API methods
   async createDocente(docenteData: DocenteCreateDTO): Promise<DocenteResponseDTO> {
     try {
-      return await this.fetchWithErrorHandling('/docentes', {
+      return await this.fetchWithErrorHandling('/docentes/', {
         method: 'POST',
         body: JSON.stringify(docenteData),
       });
