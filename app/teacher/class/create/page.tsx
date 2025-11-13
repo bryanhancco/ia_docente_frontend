@@ -355,8 +355,9 @@ export default function CreateClassPage() {
                         <option value="">Seleccionar tipo</option>
                         <option value="Clase teorica">Clase teórica</option>
                         <option value="Taller practico">Taller práctico</option>
-                        <option value="Laboratorio">Laboratorio</option>
-                        <option value="Seminario">Seminario</option>
+                        <option value="Sesion de repaso">LabSesion de repasooratorio</option>
+                        <option value="Evaluacion formativa">Evaluación formativa</option>
+                        <option value="Sesion de integracion">Sesión de integración</option>
                       </select>
                     </div>
 

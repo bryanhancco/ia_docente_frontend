@@ -217,6 +217,17 @@ export default function LoginPage() {
                     </Link>
                   </p>
                 </div>
+
+                <div className="mt-4 text-center">
+                  <p className="text-gray-500 text-sm">
+                    <Link href="/" className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors duration-200 inline-flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M17 9a1 1 0 00-1-1H6.414l2.293-2.293a1 1 0 10-1.414-1.414l-4 4a1 1 0 000 1.414l4 4a1 1 0 001.414-1.414L6.414 10H16a1 1 0 001-1z" clipRule="evenodd"/>
+                      </svg>
+                      Volver al inicio
+                    </Link>
+                  </p>
+                </div>
               </div>
             </div>
 
