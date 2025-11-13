@@ -213,7 +213,7 @@ class ApiService {
 
   // Listar clases de un docente
   async getClases(idDocente: number): Promise<ClaseResponse[]> {
-    return this.fetchWithErrorHandling(`/clases?id_docente=${idDocente}`);
+    return this.fetchWithErrorHandling(`/clases/?id_docente=${idDocente}`);
   }
 
   // Cambiar estado de una clase (habilitar/deshabilitar)
