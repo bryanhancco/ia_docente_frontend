@@ -200,7 +200,7 @@ class ApiService {
 
   // Crear una nueva clase
   async createClase(claseData: ClaseData): Promise<ClaseResponse> {
-    return this.fetchWithErrorHandling('/clases', {
+    return this.fetchWithErrorHandling('/clases/', {
       method: 'POST',
       body: JSON.stringify(claseData),
     });
@@ -419,7 +419,7 @@ class ApiService {
 
   async getDocentes(): Promise<DocenteResponseDTO[]> {
     try {
-      return await this.fetchWithErrorHandling('/docentes');
+      return await this.fetchWithErrorHandling('/docentes/');
     } catch (error) {
       console.warn('API not available for docentes list:', error);
       throw error;
@@ -601,7 +601,7 @@ class ApiService {
 
   // Crear estudiante
   async createEstudiante(estudiante: EstudianteCreateDTO): Promise<EstudianteResponseDTO> {
-    return this.fetchWithErrorHandling('/estudiantes', {
+    return this.fetchWithErrorHandling('/estudiantes/', {
       method: 'POST',
       body: JSON.stringify(estudiante),
     });
@@ -641,7 +641,7 @@ class ApiService {
 
   // Inscribir estudiante en una clase
   async inscribirEstudianteClase(inscripcion: EstudianteClaseCreateDTO): Promise<EstudianteClaseResponseDTO> {
-    return this.fetchWithErrorHandling('/estudiante-clase', {
+    return this.fetchWithErrorHandling('/estudiante-clase/', {
       method: 'POST',
       body: JSON.stringify(inscripcion),
     });
@@ -675,7 +675,7 @@ class ApiService {
 
   // Obtener todos los estudiantes (para agregar a clases)
   async getAllEstudiantes(): Promise<EstudianteResponseDTO[]> {
-    return this.fetchWithErrorHandling('/estudiantes');
+    return this.fetchWithErrorHandling('/estudiantes/');
   }
 
   // Obtener estadísticas de estudiantes de una clase
@@ -1021,7 +1021,7 @@ class ApiService {
 
   // Crear una nueva conversación
   async crearConversacion(conversacion: ConversacionCreateDTO): Promise<ConversacionResponseDTO> {
-    return this.fetchWithErrorHandling('/conversaciones', {
+    return this.fetchWithErrorHandling('/conversaciones/', {
       method: 'POST',
       body: JSON.stringify(conversacion),
     });
