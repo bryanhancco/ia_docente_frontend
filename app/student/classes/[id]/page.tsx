@@ -276,10 +276,27 @@ export default function ClassDetailPage() {
 
       // Solo actualizar estado a "En proceso" si está "No iniciado" y el usuario está viendo el contenido
       if (progreso && progreso.estado === 'No iniciado') {
-        await apiService.actualizarEstadoProgreso(progreso.id, 'En proceso');
-        await cargarProgresoClase();
-        // Actualizar el progreso local también
-        setProgresoActual({ ...progreso, estado: 'En proceso' });
+        try {
+          // Hacer un update y usar la respuesta para actualizar UI de forma optimista
+          const updatedProgreso = await apiService.actualizarEstadoProgreso(progreso.id, 'En proceso');
+
+          // Actualizar el progreso actual con la respuesta del servidor
+          setProgresoActual(updatedProgreso);
+
+          // Actualizar la copia local de claseInteractiva inmediatamente
+          setClaseInteractiva(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              progreso_estudiante: prev.progreso_estudiante.map(p => (p.id === updatedProgreso.id ? updatedProgreso : p)),
+            } as ClaseInteractivaResponseDTO;
+          });
+
+          // Luego sincronizamos el estado completo (incluye porcentaje) con el servidor
+          await cargarProgresoClase();
+        } catch (err) {
+          console.error('Error actualizando estado a En proceso:', err);
+        }
       }
 
       // Paginar contenido si existe
@@ -325,9 +342,21 @@ export default function ClassDetailPage() {
     if (!progresoActual) return;
 
     try {
-      await apiService.actualizarEstadoProgreso(progresoActual.id, 'Finalizado');
+      // Actualizar en servidor y obtener la versión actualizada
+      const updated = await apiService.actualizarEstadoProgreso(progresoActual.id, 'Finalizado');
+
+      // Actualizar progreso en el estado local inmediatamente
+      setClaseInteractiva(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          progreso_estudiante: prev.progreso_estudiante.map(p => (p.id === updated.id ? updated : p)),
+        } as ClaseInteractivaResponseDTO;
+      });
+
+      // Sincronizar la info completa del progreso (p. ej. porcentaje) desde el servidor
       await cargarProgresoClase();
-      
+
       // Limpiar la vista del contenido actual
       setContenidoActual(null);
       setProgresoActual(null);

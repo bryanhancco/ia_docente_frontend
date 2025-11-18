@@ -18,14 +18,43 @@ export default function ContenidoClaseTab({
   loadingContenido,
   iniciarClase
 }: ContenidoClaseTabProps) {
-  // Normalizar y proteger el porcentaje para evitar llamar `toFixed` sobre undefined
+  // Calcular porcentaje a partir de la estructura que devuelve la API.
+  // Si la API ya incluye `porcentaje_completado` lo usamos; si no, lo calculamos
+  // usando `contenidos_disponibles` y `progreso_estudiante`.
+  // - 'Finalizado' cuenta como 1
+  // - 'En proceso' cuenta como 0.5 (medio progreso)
+  // Esto maneja respuestas como las que compartiste en la descripción.
   const porcentaje = (() => {
-    const raw = claseInteractiva?.porcentaje_completado;
-    // Intentar convertir a número si viene como string
-    const num = typeof raw === 'number' ? raw : Number(raw ?? 0);
-    if (Number.isNaN(num)) return 0;
-    // Asegurar rango entre 0 y 100
-    return Math.max(0, Math.min(100, num));
+    // Si backend ya envía porcentaje_completado úsalo (acepta string o number)
+    const rawPct = (claseInteractiva as any)?.porcentaje_completado;
+    if (rawPct != null) {
+      const num = typeof rawPct === 'number' ? rawPct : Number(rawPct);
+      if (!Number.isNaN(num)) return Math.max(0, Math.min(100, num));
+    }
+
+    const contenidos = Array.isArray((claseInteractiva as any)?.contenidos_disponibles)
+      ? (claseInteractiva as any).contenidos_disponibles
+      : [];
+    const progreso = Array.isArray((claseInteractiva as any)?.progreso_estudiante)
+      ? (claseInteractiva as any).progreso_estudiante
+      : [];
+
+    const total = contenidos.length > 0 ? contenidos.length : progreso.length;
+    if (total === 0) return 0;
+
+    const finished = progreso.filter((p: any) => {
+      const estado = String(p?.estado ?? '').toLowerCase();
+      return estado.includes('finaliz') || estado === 'finalizado' || estado === 'completed';
+    }).length;
+
+    const inProgress = progreso.filter((p: any) => {
+      const estado = String(p?.estado ?? '').toLowerCase();
+      return estado.includes('en proceso') || estado.includes('proceso') || estado === 'in progress';
+    }).length;
+
+    const completedEquivalent = finished + inProgress * 0.5;
+    const pct = (completedEquivalent / total) * 100;
+    return Math.max(0, Math.min(100, pct));
   })();
   return (
     <div className="bg-white rounded-lg shadow p-6">
